@@ -1,0 +1,108 @@
+"""Buddy identity persistence. Stable per install."""
+
+import hashlib
+import uuid
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class Identity:
+    seed: str  # opaque, stable per install
+    name: str  # derived from seed
+    species: str  # a key from characters.NAMES, derived from seed
+    born_at: float  # unix timestamp of first run
+
+
+# Syllable tables for name generation
+_CONSONANTS = [
+    "b",
+    "c",
+    "d",
+    "f",
+    "g",
+    "h",
+    "j",
+    "k",
+    "l",
+    "m",
+    "n",
+    "p",
+    "r",
+    "s",
+    "t",
+    "v",
+    "w",
+    "z",
+]
+_VOWELS = ["a", "e", "i", "o", "u"]
+
+
+def new_seed() -> str:
+    """Generate a random opaque seed. Use uuid.uuid4().hex for randomness."""
+    return uuid.uuid4().hex
+
+
+def name_from_seed(seed: str) -> str:
+    """Generate a deterministic pronounceable name from seed.
+
+    Same seed always yields the same name. Uses syllable-based generation
+    with consonant/vowel alternation to produce pronounceable 2-3 syllable names.
+    """
+    hash_bytes = hashlib.sha256(seed.encode()).digest()
+
+    # Use different slices of the hash for different syllable positions
+    syllables = []
+    syllable_count = 2 + (hash_bytes[0] % 2)  # 2 or 3 syllables
+
+    for i in range(syllable_count):
+        # Each syllable starts with consonant, followed by vowel
+        c_idx = hash_bytes[i * 2] % len(_CONSONANTS)
+        v_idx = hash_bytes[i * 2 + 1] % len(_VOWELS)
+
+        consonant = _CONSONANTS[c_idx]
+        vowel = _VOWELS[v_idx]
+
+        syllables.append(consonant + vowel)
+
+    name = "".join(syllables)
+    return name.capitalize()
+
+
+def species_from_seed(seed: str) -> str:
+    """Pick a species deterministically from seed.
+
+    Uses a different slice of the hash than name_from_seed, so name and
+    species vary independently. Must return a key from characters.NAMES.
+    """
+    from shellmate.characters import NAMES
+
+    hash_bytes = hashlib.sha256(seed.encode()).digest()
+    species_idx = hash_bytes[8] % len(NAMES)  # Use byte 8, different from name
+    return NAMES[species_idx]
+
+
+def age_label(born_at: float, now: float) -> str:
+    """Format buddy's age in human-readable form.
+
+    Returns strings like "just hatched", "2h old", "3d old", "5w old".
+    Pure function.
+    """
+    elapsed = now - born_at
+
+    if elapsed < 60:
+        return "just hatched"
+
+    minutes = int(elapsed // 60)
+    if minutes < 60:
+        return f"{minutes}m old"
+
+    hours = int(minutes // 60)
+    if hours < 24:
+        return f"{hours}h old"
+
+    days = int(hours // 24)
+    if days < 7:
+        return f"{days}d old"
+
+    weeks = int(days // 7)
+    return f"{weeks}w old"

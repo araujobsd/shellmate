@@ -1,0 +1,34 @@
+name: ci
+on: [push, pull_request]
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python: ["3.11", "3.13"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: pipx install ruff
+      - run: ruff check shellmate/ tests/
+      - run: ruff format --check shellmate/ tests/
+      - run: sh -n install.sh
+      - run: sh -n statusline/shellmate-sprite.sh
+      - run: |
+          SHELLMATE_HOME=$PWD sh statusline/shellmate-sprite.sh >/dev/null 2>&1 || true
+          sleep 3
+          out=$(SHELLMATE_HOME=$PWD sh statusline/shellmate-sprite.sh 2>/dev/null)
+          test -n "$out" || { echo "sprite produced no output"; exit 1; }
+      - run: python -m pytest -q
+
+  no-dependencies:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Assert the package imports with no third-party packages installed
+        run: python3 -c "import shellmate.app, shellmate.render, shellmate.session"
