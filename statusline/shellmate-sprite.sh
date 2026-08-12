@@ -25,6 +25,23 @@ file_mtime() {
     stat -c %Y "$1" 2>/dev/null || stat -f %m "$1" 2>/dev/null || echo 0
 }
 
+# Portable bounded-run helper. `timeout` is GNU coreutils and does NOT exist on
+# macOS; Homebrew's coreutils installs it as `gtimeout`. Without this shim the
+# cold path dies on every Mac, no frames are ever cached, and the buddy never
+# appears at all. Running unbounded is an acceptable last resort: the cold path
+# is already backgrounded, so a hung one costs nothing the user can see.
+run_bounded() {
+    _secs="$1"
+    shift
+    if command -v timeout >/dev/null 2>&1; then
+        timeout "$_secs" "$@"
+    elif command -v gtimeout >/dev/null 2>&1; then
+        gtimeout "$_secs" "$@"
+    else
+        "$@"
+    fi
+}
+
 # Determine cache directory based on session ID
 # Sanitize session_id to prevent path traversal (only alphanumeric, -, _)
 if [ -n "$SHELLMATE_SESSION_ID" ]; then
@@ -54,7 +71,7 @@ if [ "$stale" -eq 1 ]; then
         if [ -n "$SHELLMATE_SESSION_ID" ]; then
             find "$CACHE_ROOT" -maxdepth 1 -type d -name "[A-Za-z0-9_-]*" -mmin +60 -exec rm -rf {} + 2>/dev/null || true
         fi
-        CACHE_DIR="$CACHE_DIR" timeout 3 python3 - <<'PY' 2>/dev/null
+        CACHE_DIR="$CACHE_DIR" run_bounded 3 python3 - <<'PY' 2>/dev/null
 import os, time
 from shellmate.characters import frames_for, hatch_stage, idle_frame, EGG, stage_for, apply_petting, phrase_for, egg_phrase_for
 from shellmate.config import load_config

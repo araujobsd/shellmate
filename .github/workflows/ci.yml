@@ -18,7 +18,7 @@ jobs:
       # Dev tooling only. shellmate itself has no runtime dependencies —
       # the no-dependencies job below is what guards that.
       - run: python -m pip install --upgrade pip
-      - run: python -m pip install pytest ruff
+      - run: python -m pip install pytest "ruff==0.15.11"  # pinned: format rules shift between minors
 
       - run: ruff check shellmate/ tests/
       - run: ruff format --check shellmate/ tests/
