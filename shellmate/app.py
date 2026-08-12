@@ -353,8 +353,17 @@ def show_whoami() -> int:
             }
             stage_label = stage_labels.get(stage, "")
 
-            # Build output with optional pet count
-            output = f"{identity.name} the {identity.species}, {age}"
+            # The rolled species and the displayed one can differ, because
+            # config.character overrides the roll. Reporting only the roll is
+            # misleading (the user sees a penguin but is told "the blob");
+            # reporting only the override hides what they rolled. Show both,
+            # but only when they actually differ.
+            cfg = config_mod.load_config()
+            shown = cfg.character or identity.species
+            output = f"{identity.name} the {identity.species}"
+            if shown != identity.species:
+                output += f", shown as {shown}"
+            output += f", {age}"
             if stage_label:
                 output += f" {stage_label}"
             if state.pet_count > 0:
