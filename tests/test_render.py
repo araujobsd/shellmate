@@ -20,9 +20,7 @@ def snap(views=(), mood="sleeping", online=True):
 
 @pytest.mark.parametrize("cols", [14, 20, 28, 40, 80])
 def test_every_line_is_exactly_the_requested_width(cols):
-    s = snap(
-        [view("done", "MED", 300.0, "my-project"), view("working", label="api")], mood="alert"
-    )
+    s = snap([view("done", "MED", 300.0, "my-project"), view("working", label="api")], mood="alert")
     for line in frame(s, 0, cols, color=False):
         assert width(line) == cols, repr(line)
 
