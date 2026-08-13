@@ -4,16 +4,39 @@ Every returned line is exactly `cols` display columns wide. That invariant is
 what keeps the box intact when a tab label contains CJK text or an emoji.
 """
 
-from shellmate.characters import EGG, frames_for, hatch_stage, idle_frame
+from shellmate.characters import EGG, SPRITE_LINES, frames_for, hatch_stage, idle_frame
 from shellmate.config import Config
 from shellmate.identity import Identity
 from shellmate.models import AgentView, Snapshot, fmt_age
 from shellmate.textwidth import truncate, width
-from shellmate.theme import BOX, COLORS, GLYPHS, RESET, TIER_COLORS
+from shellmate.theme import (
+    BOX,
+    COLORS,
+    GLYPHS,
+    RESET,
+    TIER_COLORS,
+    multi_color_palette,
+    paint_spectrum,
+    species_color,
+    split_marks,
+)
 
 MIN_COLS_FOR_LIST = 14
 TITLE = " buddy "
 PHRASE_BUDGET = 50  # Max width for phrase area (including quotes and spacing)
+
+# Same mapping the status line uses, so the two surfaces agree on what a mood
+# looks like. Kept here rather than imported from the shell script for obvious
+# reasons; tests/test_render.py pins the two together.
+MOOD_COLOR_ROLES = {
+    "sleeping": "dim",
+    "working": "blue",
+    "happy": "green",
+    "perked": "green",
+    "alert": "yellow",
+    "alarmed": "red",
+    "offline": "dim",
+}
 
 
 def decorate(view: AgentView) -> tuple[str, str]:
@@ -100,28 +123,50 @@ def frame(
     if config and config.show_phrase and snapshot.mood and phrase_text:
         phrase = phrase_text
 
-    # Render sprite lines, adding phrase to the 3rd line if applicable
-    for line_no, row in enumerate(sprite):
-        padded = _pad(" " + row, inner)
+    # The buddy wears its species colour and the mood rides on the trailing marks,
+    # exactly as in the status line. An egg has no species yet, so it stays on the
+    # mood colour — the same exception the status line makes.
+    effective = character or (identity.species if identity is not None else "")
+    mood_color = COLORS[MOOD_COLOR_ROLES.get(snapshot.mood, "dim")]
+    is_egg = sprite is not None and sprite in EGG
+    palette = None if is_egg else multi_color_palette(effective)
+    body_color = mood_color if is_egg else species_color(effective)
 
+    def paint_row(text: str, line_no: int) -> str:
+        """Colour one sprite row. Never changes its display width."""
+        if not color:
+            return text
+        body, marks = split_marks(text)
+        if palette:
+            painted = paint_spectrum(body, palette, frame_idx * SPRITE_LINES + line_no)
+        else:
+            painted = f"{body_color}{body}{RESET}"
+        return painted + (f"{mood_color}{marks}{RESET}" if marks else "")
+
+    # Render sprite lines, adding phrase to the 3rd line if applicable.
+    # Colour is applied AFTER every width decision: escape sequences occupy no
+    # columns, and this function's whole contract is that each line is exactly
+    # `cols` wide.
+    for line_no, row in enumerate(sprite):
+        suffix = ""
         # On the 3rd line (index 2), try to append the phrase
         if line_no == 2 and phrase and cols >= 50:  # Only if enough room
-            # Format phrase as: "phrase" in dim color
-            phrase_text = f' "{phrase}"'
-            phrase_width = width(phrase_text)
-
             # Truncate phrase if needed, leaving room for box chars and sprite
             max_phrase_width = inner - width(" " + row)
             if max_phrase_width > 3:  # At least room for a single char + quotes + space
-                if phrase_width <= max_phrase_width:
-                    padded = _pad(" " + row, inner - phrase_width) + phrase_text
-                else:
-                    # Truncate the phrase itself
-                    truncated = truncate(phrase, max_phrase_width - 3)  # -3 for quotes and space
-                    phrase_text = f' "{truncated}"'
-                    padded = _pad(" " + row, inner - width(phrase_text)) + phrase_text
+                suffix = f' "{phrase}"'
+                if width(suffix) > max_phrase_width:
+                    # -3 for quotes and space
+                    suffix = f' "{truncate(phrase, max_phrase_width - 3)}"'
 
-        lines.append(box["v"] + padded + box["v"])
+        target = inner - width(suffix)
+        text = " " + row
+        if width(text) > target:
+            text = truncate(text, target)
+        pad = " " * max(target - width(text), 0)
+        painted_suffix = f"{COLORS['dim']}{suffix}{RESET}" if (suffix and color) else suffix
+
+        lines.append(box["v"] + paint_row(text, line_no) + pad + painted_suffix + box["v"])
 
     if cols < MIN_COLS_FOR_LIST:
         lines.append(box["bl"] + box["h"] * inner + box["br"])

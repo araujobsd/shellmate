@@ -1,3 +1,5 @@
+import re
+
 import pytest
 
 from shellmate.config import Config
@@ -192,3 +194,116 @@ def test_phrase_width_invariant_maintained():
         for line in lines:
             w = width(line)
             assert w == cols, f"cols={cols}: line width is {w}, expected {cols}"
+
+
+# --- colour must never disturb the layout -------------------------------------
+# The sprite is coloured now, and every line must still be exactly `cols` wide.
+# Escape sequences occupy no columns, so any width computed on a coloured string
+# is wrong; these pin that the padding is worked out on the plain text.
+
+ANSI = re.compile(r"\033\[[0-9;]*m")
+
+
+def test_every_line_is_exact_width_with_colour_on():
+    """The box invariant has to survive colouring, at every width and stage."""
+    import time
+
+    from shellmate.characters import NAMES
+    from shellmate.config import Config
+    from shellmate.identity import Identity
+
+    now = time.time()
+    long_phrase = "a deliberately long phrase that will need truncating"
+    for species in NAMES:
+        for age, label in ((3600.0, "egg"), (5 * 86400.0, "adult")):
+            ident = Identity(seed="s" * 32, name="Testu", species=species, born_at=now - age)
+            for mood in ("sleeping", "working", "alert", "alarmed", "offline"):
+                s = snap(mood=mood, online=(mood != "offline"))
+                for cols in (3, 10, 14, 28, 50, 80):
+                    for idx in range(4):
+                        lines = frame(
+                            s,
+                            idx,
+                            cols,
+                            character=species,
+                            color=True,
+                            identity=ident,
+                            now=now,
+                            config=Config(),
+                            phrase_text=long_phrase,
+                        )
+                        for line in lines:
+                            plain = ANSI.sub("", line)
+                            assert width(plain) == cols, (
+                                f"{species}/{label}/{mood} cols={cols} idx={idx}: "
+                                f"{width(plain)} != {cols}"
+                            )
+
+
+def test_colour_does_not_change_the_visible_text():
+    """Stripping the escapes must give back exactly the uncoloured render."""
+    import time
+
+    from shellmate.config import Config
+    from shellmate.identity import Identity
+
+    now = time.time()
+    ident = Identity(seed="s" * 32, name="Testu", species="cat", born_at=now - 5 * 86400)
+    for mood in ("sleeping", "working", "alarmed"):
+        s = snap(mood=mood)
+        for idx in range(4):
+            kwargs = dict(
+                character="cat",
+                identity=ident,
+                now=now,
+                config=Config(),
+                phrase_text="something to say",
+            )
+            painted = frame(s, idx, 60, color=True, **kwargs)
+            plain = frame(s, idx, 60, color=False, **kwargs)
+            assert [ANSI.sub("", line) for line in painted] == plain, mood
+
+
+def test_the_secret_buddy_is_multicoloured_here_too():
+    """The TUI and the status line must not disagree about the spectrum."""
+    import time
+
+    from shellmate.characters import SECRET_SPECIES
+    from shellmate.config import Config
+    from shellmate.identity import Identity
+
+    now = time.time()
+    ident = Identity(seed="s" * 32, name="Testu", species=SECRET_SPECIES, born_at=now - 5 * 86400)
+    lines = frame(
+        snap(mood="working"),
+        0,
+        60,
+        character=SECRET_SPECIES,
+        color=True,
+        identity=ident,
+        now=now,
+        config=Config(),
+        phrase_text="",
+    )
+    colours = set(re.findall(r"\033\[38;2;[0-9;]+m", "".join(lines)))
+    assert len(colours) >= 5, f"only {len(colours)} colours; the spectrum did not reach the TUI"
+
+
+def test_mood_colours_match_the_status_line():
+    """Both surfaces map mood to colour; the shell script keeps its own copy.
+
+    If they drift, the same buddy is a different colour depending on which
+    surface you look at, and nothing anywhere fails.
+    """
+    from pathlib import Path
+
+    from shellmate.render import MOOD_COLOR_ROLES
+
+    script = Path(__file__).resolve().parent.parent / "statusline" / "shellmate-sprite.sh"
+    text = script.read_text()
+    block = re.search(r"role = \{(.*?)\}\[mood\]", text, re.DOTALL)
+    assert block, "mood/colour map not found in the status line script"
+    shell_map = dict(re.findall(r'"(\w+)":\s*"(\w+)"', block.group(1)))
+    assert shell_map == MOOD_COLOR_ROLES, (
+        f"status line says {shell_map}, render.py says {MOOD_COLOR_ROLES}"
+    )
