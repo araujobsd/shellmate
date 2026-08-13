@@ -68,17 +68,37 @@ def name_from_seed(seed: str) -> str:
     return name.capitalize()
 
 
+def is_rare_seed(seed: str) -> bool:
+    """Whether this seed rolled the rare species. Pure and deterministic.
+
+    Uses bytes 12-13, which neither the name nor the common species roll touches,
+    so rarity is independent of both — a rare buddy is no likelier to have any
+    particular name.
+    """
+    from shellmate.characters import RARE_ODDS
+
+    hash_bytes = hashlib.sha256(seed.encode()).digest()
+    return int.from_bytes(hash_bytes[12:14], "big") % RARE_ODDS == 0
+
+
 def species_from_seed(seed: str) -> str:
     """Pick a species deterministically from seed.
 
     Uses a different slice of the hash than name_from_seed, so name and
     species vary independently. Must return a key from characters.NAMES.
+
+    The rare species is drawn from its own roll and excluded from the common one.
+    Deriving it from the seed rather than storing it means it costs nothing to
+    persist and survives any state loss that leaves identity.json intact.
     """
-    from shellmate.characters import NAMES
+    from shellmate.characters import COMMON_NAMES, RARE_SPECIES
+
+    if is_rare_seed(seed):
+        return RARE_SPECIES
 
     hash_bytes = hashlib.sha256(seed.encode()).digest()
-    species_idx = hash_bytes[8] % len(NAMES)  # Use byte 8, different from name
-    return NAMES[species_idx]
+    species_idx = hash_bytes[8] % len(COMMON_NAMES)  # Use byte 8, different from name
+    return COMMON_NAMES[species_idx]
 
 
 def age_label(born_at: float, now: float) -> str:

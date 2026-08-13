@@ -77,6 +77,7 @@ SPECIES_COLORS = {
     "cactus": "\033[38;2;70;160;95m",  # sage
     "crab": "\033[38;2;230;90;60m",  # brick
     "octopus": "\033[38;2;200;120;220m",  # magenta
+    "dragon": "\033[38;2;255;200;20m",  # gold — the rare one
 }
 
 # Colours a mood mark can be painted in, and how far a species must stay from them.

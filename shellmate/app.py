@@ -373,6 +373,12 @@ def show_whoami() -> int:
             cfg = config_mod.load_config()
             shown = cfg.character or identity.species
             output = f"{identity.name} the {identity.species}"
+            # Say so when the roll was the rare one — otherwise nobody who gets it
+            # would ever know it was anything out of the ordinary. Keyed on the
+            # seed, not on the displayed species, so setting character = "dragon"
+            # in config does not award anyone a rarity they did not roll.
+            if identity_mod.is_rare_seed(identity.seed):
+                output += f" (rare — 1 in {characters.RARE_ODDS})"
             if shown != identity.species:
                 output += f", shown as {shown}"
             output += f", {age}"
@@ -495,6 +501,8 @@ def show_all_characters() -> int:
 
     for char_name in characters.NAMES:
         marker = "  (default)" if char_name == characters.DEFAULT_CHARACTER else ""
+        if char_name == characters.RARE_SPECIES:
+            marker = f"  (rare — rolled 1 in {characters.RARE_ODDS})"
         sys.stdout.write(f"{'=' * 60}\n")
         sys.stdout.write(f"{char_name.upper()}{marker}\n")
         sys.stdout.write(f'  character = "{char_name}"\n\n')

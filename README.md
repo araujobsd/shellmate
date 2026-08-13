@@ -102,8 +102,9 @@ the count goes in `--whoami`. Petting never overrides `alert`, `alarmed` or
 
 ## Characters
 
-Eleven. Each has its own face, compact form, hatchling variant, idle behaviour,
-and about 30 phrases in its own voice — 338 in total across the roster.
+Eleven, plus one you probably won't get. Each has its own face, compact form,
+hatchling variant, idle behaviour, and about 30 phrases in its own voice — 354 in
+total across the roster.
 
 | | | |
 |---|---|---|
@@ -111,6 +112,11 @@ and about 30 phrases in its own voice — 338 in total across the roster.
 | **dog** `Uo.oU` earnest, shouty | **frog** `@o.o@` blunt, monosyllabic | **ghost** `~o.o~` wistful, trails off |
 | **penguin** `<o.o>` pompous, dignified | **robot** `[o.o]` terse, machine-like | **cactus** `\|o.o\|` stoic, needs nothing |
 | **crab** `%o.o%` sideways thinker | **octopus** `8o.o8` frazzled, many-handed | |
+
+There is a twelfth. It is rolled separately from the other eleven, at 1 in 100,
+and it is gold. `--whoami` will tell you if you got one. If you want to know what
+it looks like before you roll it, `--all` shows it — but that is a spoiler, and
+the odds are the same either way. Delete `identity.json` to roll again.
 
 ```
    \|/          (\ /)         ,-^-.

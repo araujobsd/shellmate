@@ -166,3 +166,68 @@ def test_identity_is_frozen():
     ident = Identity(seed="abc123", name="Miso", species="cat", born_at=100.0)
     with pytest.raises(AttributeError):
         ident.name = "Neko"
+
+
+# --- the rare species ---------------------------------------------------------
+# A 12th species that the ordinary roll can never produce. Keeping the rare roll
+# separate means adding or removing a common species cannot quietly change how
+# rare it is — with a single `hash % len(NAMES)` roll, a twelfth entry would have
+# made it 1 in 12.
+
+
+def test_rare_species_is_not_in_the_common_pool():
+    from shellmate.characters import COMMON_NAMES, NAMES, RARE_SPECIES
+
+    assert RARE_SPECIES in NAMES
+    assert RARE_SPECIES not in COMMON_NAMES
+    assert set(COMMON_NAMES) | {RARE_SPECIES} == set(NAMES)
+
+
+def test_species_is_rare_exactly_when_the_seed_is_rare():
+    """species_from_seed and is_rare_seed must never disagree."""
+    from shellmate.characters import RARE_SPECIES
+    from shellmate.identity import is_rare_seed, species_from_seed
+
+    for i in range(5000):
+        seed = f"seed-{i}"
+        assert (species_from_seed(seed) == RARE_SPECIES) == is_rare_seed(seed), seed
+
+
+def test_rare_species_lands_near_its_advertised_odds():
+    """Fixed seeds, so this measures the roll rather than the RNG of the day."""
+    from shellmate.characters import RARE_ODDS, RARE_SPECIES
+    from shellmate.identity import species_from_seed
+
+    sample = 100_000
+    hits = sum(1 for i in range(sample) if species_from_seed(f"seed-{i}") == RARE_SPECIES)
+    assert hits, "the rare species is unreachable"
+    observed = sample / hits
+    # Generous bounds: this pins the order of magnitude, not the exact ratio.
+    assert RARE_ODDS * 0.5 <= observed <= RARE_ODDS * 2.0, (
+        f"1 in {observed:.0f}, expected about 1 in {RARE_ODDS}"
+    )
+
+
+def test_every_species_including_the_rare_one_is_reachable():
+    from shellmate.characters import NAMES
+    from shellmate.identity import species_from_seed
+
+    seen = {species_from_seed(f"seed-{i}") for i in range(100_000)}
+    assert seen == set(NAMES), f"unreachable: {set(NAMES) - seen}"
+
+
+def test_rarity_is_deterministic_for_a_given_seed():
+    from shellmate.identity import is_rare_seed, species_from_seed
+
+    for i in range(200):
+        seed = f"repeat-{i}"
+        assert species_from_seed(seed) == species_from_seed(seed)
+        assert is_rare_seed(seed) == is_rare_seed(seed)
+
+
+def test_rarity_is_independent_of_the_name():
+    """Rarity uses hash bytes that the name roll does not, so names stay varied."""
+    from shellmate.identity import is_rare_seed, name_from_seed
+
+    rare_names = {name_from_seed(f"seed-{i}") for i in range(100_000) if is_rare_seed(f"seed-{i}")}
+    assert len(rare_names) > 50, f"rare buddies only ever get {len(rare_names)} names"

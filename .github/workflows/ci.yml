@@ -97,6 +97,36 @@ jobs:
           test -n "$out" || { echo "per-session render produced no output"; exit 1; }
           printf '%s\n' "$out"
 
+      - name: Buddy speaks in its own voice
+        run: |
+          # The cold path computed the character AFTER calling advance() and never
+          # passed it, so phrase selection fell back to the default species and
+          # every non-cat buddy spoke in the cat's voice. Nothing in the Python
+          # suite could see it: the bug was in the argument list of a shell script.
+          state=$(mktemp -d)
+          mkdir -p "$state/shellmate"
+          python - "$state" <<'PY'
+          import json, pathlib, sys, time
+          pathlib.Path(sys.argv[1], "shellmate", "identity.json").write_text(json.dumps(
+              {"seed": "x" * 32, "name": "Rex", "species": "dog",
+               "born_at": time.time() - 5 * 86400}))
+          PY
+          cache=$(mktemp -d)
+          XDG_STATE_HOME="$state" XDG_RUNTIME_DIR="$cache" SHELLMATE_HOME=$PWD \
+            SHELLMATE_SESSION_ID=voice sh statusline/shellmate-sprite.sh >/dev/null 2>&1 || true
+          sleep 5
+          XDG_STATE_HOME="$state" python - "$state" <<'PY'
+          import json, pathlib, sys
+          from shellmate.characters import PHRASES
+          raw = json.loads(pathlib.Path(sys.argv[1], "shellmate", "state.json").read_text())
+          said = list(raw.get("phrase_by_session", {}).values())
+          assert said, "no per-session phrase was recorded"
+          dog = {p for mood in PHRASES["dog"].values() for p in mood}
+          for phrase in said:
+              assert phrase in dog, f"a dog said {phrase!r}, which is not a dog phrase"
+          print("dog said:", said)
+          PY
+
       - name: CLI entry points
         run: |
           python -m shellmate --whoami

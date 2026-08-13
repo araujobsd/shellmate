@@ -390,6 +390,35 @@ CHARACTERS = {
         ],
         "offline": [[r"  ,-^-.  ", r" (~x.x~)..", r"  ~|~|~  "]],
     },
+    # The rare one: rolled roughly 1 in RARE_ODDS and never by the common roll.
+    # Horns on top, wings underneath, so it reads as a dragon and not another cat.
+    "dragon": {
+        "sleeping": [
+            [r"  ,^^,   ", r"( -.- ) z", r"  <\__/> "],
+            [r"  ,^^,   ", r"( -.- ) zz", r"  <\__/> "],
+        ],
+        "working": [
+            [r"  ,^^,   ", r"( o.o )", r"  <\__/> "],
+            [r"  ,^^,   ", r"( o.O )", r"  <\__/> "],
+        ],
+        "happy": [
+            [r"  ,^^,   ", r"( >.< )*", r"  <\__/> "],
+            [r"  ,^^,   ", r"( >w< )*", r"  <\^^/> "],
+        ],
+        "perked": [
+            [r"  ,^^,   ", r"( o.o ) ?", r"  <\__/> "],
+            [r"  ,^^,   ", r"( O.o ) ?", r"  <\__/> "],
+        ],
+        "alert": [
+            [r"  ,^^,   ", r"( O.O ) !", r"  <\__/> "],
+            [r"  ,^^,   ", r"( O.O ) !!", r"  <\__/> "],
+        ],
+        "alarmed": [
+            [r"  ,^^, !", r"( ಠ.ಠ ) !!", r"  <\^^/> "],
+            [r"  ,^^,!!", r"( ಠ.ಠ ) !!", r"  <\vv/> "],
+        ],
+        "offline": [[r"  ,^^,   ", r"( -.- ) ..", r"  <\__/> "]],
+    },
 }
 
 
@@ -444,6 +473,10 @@ IDLE = {
     "octopus": [
         [r"  ,-^-.  ", r" (~-.-~) ", r"  ~|~|~  "],  # ripple pause
         [r"  ,-^-.  ", r" (~-.-~) ", r"  |~|~| "],  # tentacle curl
+    ],
+    "dragon": [
+        [r"  ,^^,   ", r"( -.- ) *", r"  <\__/> "],  # blink
+        [r"  ,^^,  ~", r"( -.- )", r"  <\__/> "],  # a curl of smoke
     ],
 }
 
@@ -660,11 +693,46 @@ BABY = {
         ],
         "offline": [[r"  ,^.  ", r" (~x.x~)..", r"  |~|  "]],
     },
+    "dragon": {
+        "sleeping": [
+            [r"  ,^,  ", r"(-.-)z", r"  <\/> "],
+            [r"  ,^,  ", r"(-.-)zz", r"  <\/> "],
+        ],
+        "working": [
+            [r"  ,^,  ", r"(o.o)", r"  <\/> "],
+            [r"  ,^,  ", r"(o.O)", r"  <\/> "],
+        ],
+        "happy": [
+            [r"  ,^,  ", r"(>.<)*", r"  <\/> "],
+            [r"  ,^,  ", r"(>w<)*", r"  <^^> "],
+        ],
+        "perked": [
+            [r"  ,^,  ", r"(o.o)?", r"  <\/> "],
+            [r"  ,^,  ", r"(O.o)?", r"  <\/> "],
+        ],
+        "alert": [
+            [r"  ,^,  ", r"(O.O)!", r"  <\/> "],
+            [r"  ,^,  ", r"(O.O)!!", r"  <\/> "],
+        ],
+        "alarmed": [
+            [r"  ,^, !", r"(ಠ.ಠ)!!", r"  <^^> "],
+            [r"  ,^,!!", r"(ಠ.ಠ)!!", r"  <vv> "],
+        ],
+        "offline": [[r"  ,^,  ", r"(-.-)..", r"  <\/> "]],
+    },
 }
 
 
 NAMES = tuple(CHARACTERS)
 DEFAULT_CHARACTER = NAMES[0]
+
+# The easter egg. It is never produced by the ordinary roll — identity.py rolls
+# for it separately, at odds of 1 in RARE_ODDS, so adding or removing a common
+# species cannot quietly change how rare it is. Setting it explicitly in
+# config.toml still works; that is a deliberate override, not a lucky roll.
+RARE_SPECIES = "dragon"
+RARE_ODDS = 100
+COMMON_NAMES = tuple(n for n in NAMES if n != RARE_SPECIES)
 
 
 # Phrases: character -> mood -> tuple of 4-6 distinct phrases per mood.
@@ -1172,6 +1240,52 @@ PHRASES = {
             "no signal on any limb",
         ),
     },
+    "dragon": {
+        "sleeping": (
+            "dozing atop the hoard",
+            "a nap of several centuries",
+            "the embers are banked",
+            "wake me for something worthy",
+            "coiled, and content",
+        ),
+        "working": (
+            "the forge is lit",
+            "stoking the furnace",
+            "mortal work, ancient patience",
+            "the scales do not hurry",
+            "smoke rises. progress",
+        ),
+        "happy": (
+            "you have pleased the wyrm",
+            "add it to the hoard",
+            "a treasure, this one",
+            "the ancient one purrs. yes, purrs",
+        ),
+        "perked": (
+            "something stirs below",
+            "one eye opens",
+            "the hoard is counted. go on",
+            "you have my attention, briefly",
+        ),
+        "alert": (
+            "the wyrm grows restless",
+            "centuries pass. so does this",
+            "my patience is long, not endless",
+            "the fire dims while you tarry",
+        ),
+        "alarmed": (
+            "AWAKEN, THE HOARD IS THREATENED",
+            "THE MOUNTAIN SHAKES",
+            "SUMMON ME NO FURTHER, ACT",
+            "THE WYRM IS ROUSED IN FULL",
+        ),
+        "offline": (
+            "the caves have gone dark",
+            "no scent of them on the wind",
+            "sealed behind stone",
+            "the hoard is unattended",
+        ),
+    },
 }
 
 
@@ -1230,6 +1344,11 @@ UPDATE_PHRASES = {
         "one arm found a newer version existing",
         "eight limbs detected newer me somewhere",
         "all eight arms pointing at update",
+    ),
+    "dragon": (
+        "a newer age of this software dawns",
+        "the hoard may be enlarged. update",
+        "a fresher version, should you deign",
     ),
 }
 
@@ -1408,6 +1527,15 @@ COMPACT = {
         "alert": "8O.O8",
         "alarmed": "8ಠ.ಠ8",
         "offline": "8x.x8",
+    },
+    "dragon": {
+        "sleeping": "^-.-^",
+        "working": "^o.o^",
+        "happy": "^^.^^",
+        "perked": "^o.O^",
+        "alert": "^O.O^",
+        "alarmed": "^ಠ.ಠ^",
+        "offline": "^x.x^",
     },
 }
 

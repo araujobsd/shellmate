@@ -126,14 +126,16 @@ latest_version = None
 if online:
     latest_version = check_for_update_cached(__version__, now_time, enabled=cfg.check_updates)
 
+# Determine which character to display. This MUST be settled before advance(),
+# which picks the phrase: called without character= it fell back to the default
+# species, so every dog, frog and octopus quietly spoke in the cat's voice.
+effective_character = cfg.character if cfg.character else identity.species
+
 # session_id makes advance() pick the phrase for THIS pane's mood and keep it in
 # this pane's own slot. Without it the phrase came from the aggregate mood across
 # every pane, so a quiet pane quoted whichever other pane was worst off.
-snap, st, _ = advance(sessions, st, now_time, cfg, online, latest_version=latest_version, session_id=session_id)  # alerts discarded: display-only
+snap, st, _ = advance(sessions, st, now_time, cfg, online, character=effective_character, latest_version=latest_version, session_id=session_id)  # alerts discarded: display-only
 save(default_path(), st)
-
-# Determine which character to display
-effective_character = cfg.character if cfg.character else identity.species
 
 # Use per-session mood if session_id is available, otherwise use aggregate
 if session_id:
