@@ -426,12 +426,35 @@ def check_update() -> int:
         return 0
 
 
+_COLUMN = characters.SPRITE_MAX_COLS + 2  # sprite budget plus a two-space gutter
+
+
+def _write_sprite_row(frames: list[list[str]], indent: int = 4) -> None:
+    """Write frames side by side, one text line at a time.
+
+    Padding is computed from display width, never len(), so sprites containing
+    wide or ambiguous-width glyphs still line up.
+    """
+    for line_idx in range(characters.SPRITE_LINES):
+        cells = []
+        for frame in frames:
+            line = frame[line_idx] if line_idx < len(frame) else ""
+            cells.append(line + " " * max(1, _COLUMN - width(line)))
+        sys.stdout.write(" " * indent + "".join(cells).rstrip() + "\n")
+
+
 def show_all_characters() -> int:
-    """Display all available characters and moods without starting the loop."""
+    """Display every character at every stage, for eyeballing the art.
+
+    Stages sit side by side on purpose. Every sprite bug found so far — the
+    penguin's missing flipper, the cactus's missing arms, the cat's missing ear —
+    was invisible in isolation and obvious next to the other stages.
+    """
     mood_descriptions = {
         "sleeping": "all agents idle",
         "working": "something is running",
         "perked": "just finished (<2m)",
+        "happy": "just petted",
         "alert": "waiting 2-10m",
         "alarmed": "blocked, or ignored >10m",
         "offline": "connection lost",
@@ -440,38 +463,37 @@ def show_all_characters() -> int:
     config_path = "~/.config/shellmate/config.toml"
     sys.stdout.write(f"Configuration: add to {config_path}\n\n")
 
+    egg_hours = characters.EGG_SECONDS // 3600
+    sys.stdout.write(f"EGG — shared by every buddy, first {egg_hours}h. One frame per stage:\n\n")
+    _write_sprite_row(list(characters.EGG))
+    sys.stdout.write("\n")
+
     for char_name in characters.NAMES:
-        # Mark the default character and make the name visually distinct
         marker = "  (default)" if char_name == characters.DEFAULT_CHARACTER else ""
-        sys.stdout.write(f"{'=' * 40}\n")
+        sys.stdout.write(f"{'=' * 60}\n")
         sys.stdout.write(f"{char_name.upper()}{marker}\n")
-        sys.stdout.write(f'  character = "{char_name}"\n')
-        sys.stdout.write("\n")
+        sys.stdout.write(f'  character = "{char_name}"\n\n')
 
         for mood in characters.MOODS:
-            frames = characters.frames_for(char_name, mood)
-            description = mood_descriptions.get(mood, "")
+            hatchling = characters.frames_for(char_name, mood, stage="hatchling")
+            adult = characters.frames_for(char_name, mood, stage="adult")
+            sys.stdout.write(f"  {mood:<10} {mood_descriptions.get(mood, '')}\n")
 
-            # Print mood name and description
-            sys.stdout.write(f"  {mood:<10} {description}\n")
-
-            # Get frames (offline has 1, others have 2)
-            frame_0 = frames[0] if frames else None
-            frame_1 = frames[1] if len(frames) > 1 else None
-
-            if frame_0:
-                # Print two frames side by side with proper padding
-                for line_idx in range(characters.SPRITE_LINES):
-                    line_0 = frame_0[line_idx] if line_idx < len(frame_0) else ""
-                    line_1 = frame_1[line_idx] if frame_1 and line_idx < len(frame_1) else ""
-
-                    # Calculate padding needed based on display width
-                    line_0_width = width(line_0)
-                    padding = " " * (characters.SPRITE_MAX_COLS - line_0_width + 2)
-
-                    sys.stdout.write(f"    {line_0}{padding}{line_1}\n")
+            if hatchling == adult:
+                # alert/alarmed/offline carry a signal, so they stay full-size at
+                # every age. Say so, rather than printing the same art twice.
+                sys.stdout.write("    (same at every age)\n")
+                _write_sprite_row(adult)
+            else:
+                labels = "hatchling".ljust(_COLUMN * len(hatchling)) + "adult"
+                sys.stdout.write(" " * 4 + labels + "\n")
+                _write_sprite_row(hatchling + adult)
 
             sys.stdout.write("\n")
+
+        sys.stdout.write(
+            "  juvenile and adult share the adult art; only the age label differs.\n\n"
+        )
 
     return 0
 

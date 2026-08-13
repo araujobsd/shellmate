@@ -48,7 +48,7 @@ It hatches once, then it's yours:
 
 ```bash
 python3 -m shellmate --whoami     # Kizuhi the blob, 3d old (juvenile), petted 6 times
-python3 -m shellmate --all        # every buddy, every mood, side by side
+python3 -m shellmate --all        # every buddy, every mood and stage, side by side
 ```
 
 Species and name are rolled once from a random seed at first hatch and persist in

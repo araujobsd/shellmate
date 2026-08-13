@@ -280,16 +280,52 @@ def test_signal_moods_stay_full_size_at_every_age():
             assert frames_for(species, mood, stage="hatchling") == CHARACTERS[species][mood]
 
 
-def test_sprite_art_has_no_escaped_quote_artifacts():
-    r"""Raw strings cannot escape their own quote: r"-\"-\"-" keeps the backslash.
-
-    The baby owl's feet shipped that way and rendered as -\"-\"- instead of -"-"-.
-    """
+def _all_art_lines():
+    """Yield (label, line) for every sprite line in every art table."""
     for table_name, table in (("BABY", BABY), ("CHARACTERS", CHARACTERS)):
         for species, moods in table.items():
             for mood, frames in moods.items():
                 for i, frame in enumerate(frames):
                     for line in frame:
-                        assert "\\" + '"' not in line, (
-                            f'{table_name}[{species}][{mood}] f{i}: {line!r} contains \\"'
+                        yield f"{table_name}[{species}][{mood}] f{i}", line
+    for i, frame in enumerate(EGG):
+        for line in frame:
+            yield f"EGG f{i}", line
+    for species, frames in IDLE.items():
+        for i, frame in enumerate(frames):
+            for line in frame:
+                yield f"IDLE[{species}] f{i}", line
+
+
+def test_sprite_art_has_no_escape_artifacts():
+    r"""A raw string does not process escapes, so r"\_\\" keeps every backslash.
+
+    Two sprites shipped this way: the baby owl's feet, written r"-\"-\"-", showed
+    as -\"-\"- instead of -"-"-; and the last egg frame, written r"  \\_/\\  ",
+    showed as \\_/\\. Both are invisible in the source and obvious on screen.
+    """
+    for label, line in _all_art_lines():
+        assert '\\"' not in line, f'{label}: {line!r} contains \\"'
+        assert "\\\\" not in line, f"{label}: {line!r} contains a doubled backslash"
+
+
+def test_baby_keeps_its_adult_mirror_pairs_balanced():
+    r"""A limb lost in the shrink shows up as an unbalanced mirror pair.
+
+    The cat shipped as /\_\ where the adult is /\_/\ — one ear short. Character-set
+    checks miss it, because both / and \ are still present; only the counts differ.
+    """
+    pairs = [("/", "\\"), ("<", ">"), ("(", ")"), ("[", "]")]
+    for species in NAMES:
+        for mood in BABY_MOODS:
+            baby_frames = BABY[species][mood]
+            adult_frames = CHARACTERS[species][mood]
+            for i, (baby, adult) in enumerate(zip(baby_frames, adult_frames, strict=True)):
+                for line_no, (baby_line, adult_line) in enumerate(zip(baby, adult, strict=True)):
+                    for left, right in pairs:
+                        if adult_line.count(left) != adult_line.count(right):
+                            continue  # adult is deliberately lopsided here
+                        assert baby_line.count(left) == baby_line.count(right), (
+                            f"{species}/{mood} f{i} line{line_no}: adult {adult_line!r} balances "
+                            f"{left}{right} but baby {baby_line!r} does not"
                         )

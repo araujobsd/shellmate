@@ -7,7 +7,10 @@ Contract, enforced by tests/test_characters.py:
   * no line exceeds 12 display columns
   * egg frames are 3 lines and <=12 columns
   * idle frames are 3 lines and <=12 columns
-  * baby frames exist only for sleeping and working; 2 frames each
+  * baby frames exist for every mood in BABY_MOODS; 2 frames each
+  * a baby's mirrored pairs (/\, <>, (), []) stay as balanced as its adult's —
+    the cat shipped with /\_\ instead of /\/\, one ear short, and nothing caught
+    it because both characters were still present
 
 Phrases: mood-specific lines of dialogue, per character. Each character has a
 distinct voice. Constraints, enforced by tests/test_characters.py:
@@ -40,7 +43,10 @@ EGG = [
     [r"   ()    ", r"  (  )   ", r"   ()    "],
     [r"   ()    ", r"  ( :)   ", r"   ()    "],
     [r"  (  )   ", r"  (::)   ", r"  (  )   "],
-    [r"  (  )   ", r"   ^-^   ", r"  \\_/\\  "],
+    # Shell bottom is \__/ : it mirrors the (  ) top and matches its width. It
+    # was written r"  \\_/\\  ", but a raw string does not process escapes, so
+    # both backslashes rendered literally as \\_/\\.
+    [r"  (  )   ", r"   ^-^   ", r"  \__/   "],
 ]
 
 # Egg phrases — species-agnostic, showing progression from silence to hatching
@@ -392,7 +398,9 @@ IDLE = {
     ],
     "owl": [
         [r" ,___,  ", r" (-,-)* ", r' -"-"- '],  # blink
-        [r" ,___,\\", r" (-,-) ", r' -"-"- '],  # ear twitch
+        # Not a raw string: the twitch is ONE trailing backslash, and a raw string
+        # can neither end in a lone backslash nor collapse r"\\" back down to one.
+        [" ,___,\\", r" (-,-) ", r' -"-"- '],  # ear twitch
     ],
     "blob": [
         [r"  .---.  ", r" ( -.- )*", r"  `---'  "],  # blink
@@ -444,20 +452,20 @@ IDLE = {
 BABY = {
     "cat": {
         "sleeping": [
-            [r" /\_\ ", r"(-.-)z", r" >^<  "],
-            [r" /\_\ ", r"(-.-)zz", r" >^<  "],
+            [r" /\/\ ", r"(-.-)z", r" >^<  "],
+            [r" /\/\ ", r"(-.-)zz", r" >^<  "],
         ],
         "working": [
-            [r" /\_\ ", r"(o.o)", r" >^<  "],
-            [r" /\_\ ", r"(o.O)", r" >^<  "],
+            [r" /\/\ ", r"(o.o)", r" >^<  "],
+            [r" /\/\ ", r"(o.O)", r" >^<  "],
         ],
         "perked": [
-            [r" /\_\ ", r"(o.o)?", r" >^<  "],
-            [r" /\_\ ", r"(O.o)?", r" >^<  "],
+            [r" /\/\ ", r"(o.o)?", r" >^<  "],
+            [r" /\/\ ", r"(O.o)?", r" >^<  "],
         ],
         "happy": [
-            [r" /\_\ ", r"(>.<)*", r" >^<  "],
-            [r" /\_\ ", r"(>w<)*", r" >^<  "],
+            [r" /\/\ ", r"(>.<)*", r" >^<  "],
+            [r" /\/\ ", r"(>w<)*", r" >^<  "],
         ],
     },
     # The owl's feet are '-"-"-'. They were written as a raw string with escaped
