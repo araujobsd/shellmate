@@ -79,13 +79,14 @@ render_cold() {
         CACHE_DIR="$CACHE_DIR" run_bounded 3 python3 - <<'PY' 2>/dev/null
 import os, time
 from shellmate import __version__
-from shellmate.characters import frames_for, hatch_stage, idle_frame, EGG, stage_for, apply_petting, phrase_for, egg_phrase_for
+from shellmate.characters import frames_for, hatch_stage, idle_frame, EGG, stage_for, apply_petting, phrase_for, egg_phrase_for, MAX_FRAMES
 from shellmate.config import load_config
 from shellmate.escalation import advance
 from shellmate.session import sample
 from shellmate.store import default_path, identity_path, load, load_identity, save_identity, save
-from shellmate.theme import COLORS, RESET, species_color, split_marks
+from shellmate.theme import COLORS, RESET, multi_color_palette, paint_spectrum, species_color, split_marks
 from shellmate.textwidth import width, truncate
+from shellmate.characters import SPRITE_LINES
 from shellmate.identity import new_seed, name_from_seed, species_from_seed, Identity
 from shellmate.update import check_for_update_cached
 
@@ -152,10 +153,18 @@ role = {"sleeping": "dim", "working": "blue", "happy": "green", "perked": "green
 col, reset = COLORS[role], RESET
 
 
-def paint(line, body_col, mark_col):
-    """Body in the species colour, trailing marks in the mood colour."""
+def paint(line, body_col, mark_col, palette=None, shift=0):
+    """Body in the species colour, trailing marks in the mood colour.
+
+    A species with a palette gets its body painted glyph by glyph across the
+    spectrum instead, shifted per frame so the colours crawl. The marks stay on
+    the mood colour either way, so urgency still reads on the loudest buddy.
+    """
     body_part, marks = split_marks(line)
-    out = f"{body_col}{body_part}{RESET}"
+    if palette:
+        out = paint_spectrum(body_part, palette, shift)
+    else:
+        out = f"{body_col}{body_part}{RESET}"
     if marks:
         out += f"{mark_col}{marks}{RESET}"
     return out
@@ -171,13 +180,18 @@ else:
     buddy_stage = stage_for(identity.born_at, now_time)
     frames_data = frames_for(effective_character, mood, stage=buddy_stage)
 
-# Render frames for current mood
-for i in range(2):
+# Render every cache slot. A 2-frame sprite is written a,b,a,b and still
+# alternates once a second; a 4-frame one gets a full loop.
+palette = None if egg_idx is not None else multi_color_palette(effective_character)
+for i in range(MAX_FRAMES):
     frame = frames_data[i % len(frames_data)]
     # The egg has no species yet, so it stays on the mood colour; once hatched the
     # body wears the species colour and only the marks track the mood.
     frame_body_col = col if egg_idx is not None else species_color(effective_character)
-    body = "\n".join(paint(ln, frame_body_col, col) for ln in frame)
+    body = "\n".join(
+        paint(ln, frame_body_col, col, palette, i * SPRITE_LINES + n)
+        for n, ln in enumerate(frame)
+    )
 
     # Append name and phrase if configured
     body_lines = body.split("\n")
@@ -222,7 +236,10 @@ offline_frames = frames_for(effective_character, "offline")
 offline_col, offline_reset = COLORS["dim"], RESET
 for i in range(2):
     frame = offline_frames[i % len(offline_frames)]
-    body = "\n".join(paint(ln, species_color(effective_character), offline_col) for ln in frame)
+    body = "\n".join(
+        paint(ln, species_color(effective_character), offline_col, palette, i * SPRITE_LINES + n)
+        for n, ln in enumerate(frame)
+    )
     if egg_idx is None:
         body_lines = body.split("\n")
         if body_lines:
@@ -291,7 +308,9 @@ if [ "$stale" -eq 1 ]; then
 fi
 
 # --- hot path: pure bash, just print the frame for this second ---
-frame=$(( now % 2 ))
+# Must match characters.MAX_FRAMES; tests/test_statusline.py asserts they agree.
+FRAMES=4
+frame=$(( now % FRAMES ))
 
 # Check for staleness: if frame is older than STALENESS_THRESHOLD, render offline instead
 frame_file="$CACHE_DIR/frame$frame"

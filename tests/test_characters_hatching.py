@@ -9,6 +9,7 @@ from shellmate.characters import (
     EGG,
     EGG_COMPACT,
     IDLE,
+    MAX_FRAMES,
     MOODS,
     NAMES,
     SPRITE_LINES,
@@ -254,10 +255,10 @@ def test_baby_covers_every_baby_mood_for_every_species():
         for mood in BABY_MOODS:
             assert mood in BABY[species], f"{species} is missing hatchling {mood}"
             frames = BABY[species][mood]
-            expected_frames = 1 if mood == "offline" else 2
-            assert len(frames) == expected_frames, (
-                f"{species}/{mood} has {len(frames)} frames, expected {expected_frames}"
-            )
+            if mood == "offline":
+                assert len(frames) == 1, f"{species}/offline must not animate"
+            else:
+                assert 2 <= len(frames) <= MAX_FRAMES, f"{species}/{mood} has {len(frames)} frames"
             for i, frame in enumerate(frames):
                 assert len(frame) == SPRITE_LINES, f"{species}/{mood} f{i} line count"
                 for line in frame:

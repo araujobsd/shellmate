@@ -107,3 +107,51 @@ def test_split_marks_does_not_mistake_a_face_for_a_mark():
     assert split_marks("(-.-)..") == ("(-.-)", "..")
     assert split_marks("(O.O)!!") == ("(O.O)", "!!")
     assert split_marks(" >^<  ") == (" >^<  ", "")
+
+
+def test_spectrum_colours_also_clear_the_mood_marks():
+    """A multicoloured body still sits beside mood-coloured marks."""
+    import math
+
+    from shellmate.theme import COLORS, MARK_COLOR_ROLES, MIN_MARK_DISTANCE, SPECTRUM
+
+    for code in SPECTRUM:
+        for role in MARK_COLOR_ROLES:
+            distance = math.dist(_rgb(code), _rgb(COLORS[role]))
+            assert distance >= MIN_MARK_DISTANCE, (
+                f"spectrum colour {code!r} is {distance:.0f} from the {role} mark"
+            )
+
+
+def test_paint_spectrum_preserves_the_text():
+    """Colouring must never add, drop or reorder a glyph."""
+    import re
+
+    from shellmate.characters import CHARACTERS
+    from shellmate.theme import SPECTRUM, paint_spectrum
+
+    for mood, frames in CHARACTERS["glitch"].items():
+        for frame in frames:
+            for line in frame:
+                for shift in range(len(SPECTRUM) + 2):
+                    painted = paint_spectrum(line, SPECTRUM, shift)
+                    assert re.sub(r"\033\[[0-9;]*m", "", painted) == line, (mood, line, shift)
+
+
+def test_paint_spectrum_actually_uses_several_colours():
+    import re
+
+    from shellmate.theme import SPECTRUM, paint_spectrum
+
+    painted = paint_spectrum("[#####]", SPECTRUM, 0)
+    used = set(re.findall(r"\033\[38;2;[0-9;]+m", painted))
+    assert len(used) >= 5, f"only {len(used)} colours in a 7-glyph line"
+
+
+def test_only_the_secret_species_is_multicoloured():
+    from shellmate.characters import PUBLIC_NAMES, SECRET_SPECIES
+    from shellmate.theme import multi_color_palette
+
+    assert multi_color_palette(SECRET_SPECIES)
+    for name in PUBLIC_NAMES:
+        assert multi_color_palette(name) is None, f"{name} should be a single colour"

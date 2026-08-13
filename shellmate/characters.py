@@ -2,7 +2,8 @@ r"""Sprite data. No logic lives here — adding a buddy is appending a dict entr
 
 Contract, enforced by tests/test_characters.py:
   * every character defines all six moods
-  * animated moods carry exactly 2 frames; `offline` carries exactly 1
+  * animated moods carry 2 frames, or any divisor of MAX_FRAMES up to it;
+    `offline` carries exactly 1 and never animates
   * every frame is exactly 3 lines
   * no line exceeds 12 display columns
   * egg frames are 3 lines and <=12 columns
@@ -34,6 +35,11 @@ MOODS = ("sleeping", "working", "happy", "perked", "alert", "alarmed", "offline"
 # work at any size; size is a weak signal that mostly just made it jitter.
 BABY_MOODS = MOODS
 SPRITE_LINES = 3
+# Animation slots written to the frame cache. The hot path picks one by wall
+# clock, so every sprite is written cycling to fill all of them: a 2-frame buddy
+# becomes a,b,a,b and alternates once a second exactly as it always has, while a
+# 4-frame one gets a full four-second loop. Frame counts must divide this.
+MAX_FRAMES = 4
 SPRITE_MAX_COLS = 12
 
 # Growth stage boundaries (seconds from birth)
@@ -419,6 +425,48 @@ CHARACTERS = {
         ],
         "offline": [[r"  ,^^,   ", r"( -.- ) ..", r"  <\__/> "]],
     },
+    # The secret one. Never rolled — see SECRET_SPECIES — and hidden from --all.
+    # It animates on four frames where the others use two: the body itself
+    # corrupts and reassembles rather than just the face changing.
+    "glitch": {
+        "sleeping": [
+            [r" [#####] ", r" ( -.- ) ", r" [#####] "],
+            [r" [-=-=-] ", r" ( -.- )z", r" [=-=-=] "],
+            [r" [~~~~~] ", r" ( -.- ) ", r" [~~~~~] "],
+            [r" [=-=-=] ", r" ( -.- )z", r" [-=-=-] "],
+        ],
+        "working": [
+            [r" [#####] ", r" ( o.o ) ", r" [#####] "],
+            [r" [-=-=-] ", r" ( 0.0 ) ", r" [=-=-=] "],
+            [r" [~~~~~] ", r" ( o.O ) ", r" [~~~~~] "],
+            [r" [=-=-=] ", r" ( 0.o ) ", r" [-=-=-] "],
+        ],
+        "happy": [
+            [r" [#####] ", r" ( ^.^ )*", r" [#####] "],
+            [r" [-=-=-] ", r" ( >.< )*", r" [=-=-=] "],
+            [r" [~~~~~] ", r" ( ^.^ )*", r" [~~~~~] "],
+            [r" [=-=-=] ", r" ( >w< )*", r" [-=-=-] "],
+        ],
+        "perked": [
+            [r" [#####] ", r" ( o.o )?", r" [#####] "],
+            [r" [-=-=-] ", r" ( 0.o )?", r" [=-=-=] "],
+            [r" [~~~~~] ", r" ( o.0 )?", r" [~~~~~] "],
+            [r" [=-=-=] ", r" ( O.o )?", r" [-=-=-] "],
+        ],
+        "alert": [
+            [r" [#####] ", r" ( O.O )!", r" [#####] "],
+            [r" [-=-=-] ", r" ( 0.0 )!", r" [=-=-=] "],
+            [r" [~~~~~] ", r" ( O.O )!!", r" [~~~~~] "],
+            [r" [=-=-=] ", r" ( 0.0 )!!", r" [-=-=-] "],
+        ],
+        "alarmed": [
+            [r" [#####]!", r" ( ಠ.ಠ )!!", r" [#####] "],
+            [r" [-=-=-]!", r" ( ಠ.ಠ )!!", r" [=-=-=] "],
+            [r" [~~~~~]!", r" ( ಠ.ಠ )!!", r" [~~~~~] "],
+            [r" [=-=-=]!", r" ( ಠ.ಠ )!!", r" [-=-=-] "],
+        ],
+        "offline": [[r" [.....] ", r" ( x.x ) ", r" [.....] "]],
+    },
 }
 
 
@@ -477,6 +525,10 @@ IDLE = {
     "dragon": [
         [r"  ,^^,   ", r"( -.- ) *", r"  <\__/> "],  # blink
         [r"  ,^^,  ~", r"( -.- )", r"  <\__/> "],  # a curl of smoke
+    ],
+    "glitch": [
+        [r" [#####] ", r" ( -.- )*", r" [#####] "],  # blink
+        [r" [#?#?#] ", r" ( -.- ) ", r" [?#?#?] "],  # a bad read
     ],
 }
 
@@ -720,6 +772,45 @@ BABY = {
         ],
         "offline": [[r"  ,^,  ", r"(-.-)..", r"  <\/> "]],
     },
+    "glitch": {
+        "sleeping": [
+            [r" [###] ", r"(-.-)", r" [###] "],
+            [r" [-=-] ", r"(-.-)z", r" [=-=] "],
+            [r" [~~~] ", r"(-.-)", r" [~~~] "],
+            [r" [=-=] ", r"(-.-)z", r" [-=-] "],
+        ],
+        "working": [
+            [r" [###] ", r"(o.o)", r" [###] "],
+            [r" [-=-] ", r"(0.0)", r" [=-=] "],
+            [r" [~~~] ", r"(o.O)", r" [~~~] "],
+            [r" [=-=] ", r"(0.o)", r" [-=-] "],
+        ],
+        "happy": [
+            [r" [###] ", r"(^.^)*", r" [###] "],
+            [r" [-=-] ", r"(>.<)*", r" [=-=] "],
+            [r" [~~~] ", r"(^.^)*", r" [~~~] "],
+            [r" [=-=] ", r"(>w<)*", r" [-=-] "],
+        ],
+        "perked": [
+            [r" [###] ", r"(o.o)?", r" [###] "],
+            [r" [-=-] ", r"(0.o)?", r" [=-=] "],
+            [r" [~~~] ", r"(o.0)?", r" [~~~] "],
+            [r" [=-=] ", r"(O.o)?", r" [-=-] "],
+        ],
+        "alert": [
+            [r" [###] ", r"(O.O)!", r" [###] "],
+            [r" [-=-] ", r"(0.0)!", r" [=-=] "],
+            [r" [~~~] ", r"(O.O)!!", r" [~~~] "],
+            [r" [=-=] ", r"(0.0)!!", r" [-=-] "],
+        ],
+        "alarmed": [
+            [r" [###]!", r"(ಠ.ಠ)!!", r" [###] "],
+            [r" [-=-]!", r"(ಠ.ಠ)!!", r" [=-=] "],
+            [r" [~~~]!", r"(ಠ.ಠ)!!", r" [~~~] "],
+            [r" [=-=]!", r"(ಠ.ಠ)!!", r" [-=-] "],
+        ],
+        "offline": [[r" [...] ", r"(x.x)", r" [...] "]],
+    },
 }
 
 
@@ -732,7 +823,19 @@ DEFAULT_CHARACTER = NAMES[0]
 # config.toml still works; that is a deliberate override, not a lucky roll.
 RARE_SPECIES = "dragon"
 RARE_ODDS = 100
-COMMON_NAMES = tuple(n for n in NAMES if n != RARE_SPECIES)
+
+# The secret one. Not in the common pool and not the rare roll either, so no seed
+# can ever produce it — the only way in is `character = "glitch"` in config.toml.
+# It is also hidden from --all, which is the roster people browse. Being absent
+# from both COMMON_NAMES and the rare roll is what makes "nobody can mint it"
+# true by construction rather than by a low probability.
+SECRET_SPECIES = "glitch"
+
+# Species an ordinary roll can produce: everything except the rare and secret ones.
+COMMON_NAMES = tuple(n for n in NAMES if n not in (RARE_SPECIES, SECRET_SPECIES))
+
+# What --all lists. The secret buddy is deliberately missing.
+PUBLIC_NAMES = tuple(n for n in NAMES if n != SECRET_SPECIES)
 
 
 # Phrases: character -> mood -> tuple of 4-6 distinct phrases per mood.
@@ -1286,6 +1389,52 @@ PHRASES = {
             "the hoard is unattended",
         ),
     },
+    "glitch": {
+        "sleeping": (
+            "st4te: dr34ming",
+            "idle loop. idle loop. idle lo",
+            "powered down, mostly",
+            "no signal. resting anyway",
+            "sleep(); // forever?",
+        ),
+        "working": (
+            "compiling something. probably",
+            "0x574f524b494e47",
+            "cycles spent. results pending",
+            "running. do not observe too closely",
+            "thread 1 of ?? active",
+        ),
+        "happy": (
+            "unexpected joy. not in spec",
+            "affection buffer overflowed",
+            "this outcome was not documented",
+            "warmth detected. reason unknown",
+        ),
+        "perked": (
+            "something completed. probably yours",
+            "interrupt received",
+            "state changed. investigating",
+            "did that resolve",
+        ),
+        "alert": (
+            "still waiting. clock is running",
+            "timeout approaching",
+            "this has been pending a while",
+            "attention required, eventually",
+        ),
+        "alarmed": (
+            "STACK OVERFLOW OF PATIENCE",
+            "UNHANDLED: HUMAN NOT FOUND",
+            "CRITICAL. LOOK AT ME",
+            "SEGFAULT IMMINENT (EMOTIONAL)",
+        ),
+        "offline": (
+            "connection refused",
+            "no route to session",
+            "reading from a closed socket",
+            "signal lost. holding position",
+        ),
+    },
 }
 
 
@@ -1349,6 +1498,11 @@ UPDATE_PHRASES = {
         "a newer age of this software dawns",
         "the hoard may be enlarged. update",
         "a fresher version, should you deign",
+    ),
+    "glitch": (
+        "a newer build exists. i can sense it",
+        "version drift detected",
+        "patch available. apply at will",
     ),
 }
 
@@ -1536,6 +1690,17 @@ COMPACT = {
         "alert": "^O.O^",
         "alarmed": "^ಠ.ಠ^",
         "offline": "^x.x^",
+    },
+    # Hash delimiters, not the robot's brackets: compact faces must stay distinct
+    # per mood across every character, and [o.o] is already the robot's.
+    "glitch": {
+        "sleeping": "#-.-#",
+        "working": "#0.0#",
+        "happy": "#^.^#",
+        "perked": "#0.o#",
+        "alert": "#O.O#",
+        "alarmed": "#ಠ.ಠ#",
+        "offline": "#x.x#",
     },
 }
 

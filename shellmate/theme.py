@@ -78,11 +78,50 @@ SPECIES_COLORS = {
     "crab": "\033[38;2;230;90;60m",  # brick
     "octopus": "\033[38;2;200;120;220m",  # magenta
     "dragon": "\033[38;2;255;200;20m",  # gold — the rare one
+    "glitch": "\033[38;2;120;230;230m",  # cyan — the secret one
 }
 
 # Colours a mood mark can be painted in, and how far a species must stay from them.
 MARK_COLOR_ROLES = ("dim", "blue", "green", "yellow", "red")
 MIN_MARK_DISTANCE = 65.0
+
+# Species that render as a spectrum rather than one flat colour. Every entry is
+# held to the same MIN_MARK_DISTANCE as a flat species colour, because the mood
+# marks are painted immediately beside these glyphs.
+SPECTRUM = (
+    "\033[38;2;255;85;85m",  # red
+    "\033[38;2;255;150;40m",  # orange
+    "\033[38;2;255;235;60m",  # yellow
+    "\033[38;2;90;240;110m",  # green
+    "\033[38;2;100;235;235m",  # cyan
+    "\033[38;2;60;120;255m",  # blue
+    "\033[38;2;185;130;255m",  # violet
+    "\033[38;2;255;110;210m",  # magenta
+)
+
+MULTI_COLOR_SPECIES = {"glitch": SPECTRUM}
+
+
+def multi_color_palette(species: str) -> tuple[str, ...] | None:
+    """Spectrum for a species that renders multicoloured, else None. Pure."""
+    return MULTI_COLOR_SPECIES.get(species)
+
+
+def paint_spectrum(line: str, palette: tuple[str, ...], shift: int) -> str:
+    """Colour each glyph from the palette, advancing along the line. Pure.
+
+    Spaces are left uncoloured so the escape sequences stay proportional to the
+    visible glyphs, and `shift` moves the whole spectrum along per frame, which is
+    what makes it crawl rather than merely look striped.
+    """
+    out = []
+    for index, char in enumerate(line):
+        if char == " ":
+            out.append(char)
+            continue
+        out.append(palette[(index + shift) % len(palette)] + char)
+    return "".join(out) + RESET
+
 
 # Trailing decorations that belong to the mood rather than the body: ! and !! for
 # alert and alarmed, ? for perked, * for happy, z/zz for sleeping, .. for offline.

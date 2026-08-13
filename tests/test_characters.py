@@ -39,10 +39,26 @@ def test_every_character_has_every_mood(name):
 
 
 @pytest.mark.parametrize("name", EVERY)
-def test_animated_moods_have_two_frames(name):
+def test_animated_moods_have_a_supported_frame_count(name):
+    """2 frames is the norm; offline has 1; the secret buddy is allowed more.
+
+    The cache holds MAX_FRAMES slots and the hot path indexes them by wall clock,
+    so a 2-frame sprite is written as a,b,a,b and still alternates once a second
+    exactly as before. Anything beyond MAX_FRAMES would be silently truncated at
+    render time, which is the real ceiling this pins.
+    """
+    from shellmate.characters import MAX_FRAMES
+
     for mood in MOODS:
-        expected = 1 if mood == "offline" else 2
-        assert len(CHARACTERS[name][mood]) == expected, f"{name}/{mood}"
+        frames = CHARACTERS[name][mood]
+        if mood == "offline":
+            assert len(frames) == 1, f"{name}/offline must not animate"
+            continue
+        assert 2 <= len(frames) <= MAX_FRAMES, f"{name}/{mood} has {len(frames)} frames"
+        assert MAX_FRAMES % len(frames) == 0, (
+            f"{name}/{mood} has {len(frames)} frames, which does not divide "
+            f"MAX_FRAMES={MAX_FRAMES} — the loop would stutter at the wrap"
+        )
 
 
 @pytest.mark.parametrize("name", EVERY)

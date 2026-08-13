@@ -6,6 +6,7 @@ from shellmate.characters import (
     CHARACTERS,
     COMPACT,
     DEFAULT_CHARACTER,
+    MAX_FRAMES,
     NAMES,
     SPRITE_LINES,
     SPRITE_MAX_COLS,
@@ -111,9 +112,15 @@ def test_baby_frames_have_the_right_frame_count():
     """
     for char_name, moods in BABY.items():
         for mood, frames in moods.items():
-            expected = 1 if mood == "offline" else 2
-            msg = f"BABY[{char_name}][{mood}] has {len(frames)} frames, expected {expected}"
-            assert len(frames) == expected, msg
+            if mood == "offline":
+                assert len(frames) == 1, f"BABY[{char_name}][offline] must not animate"
+                continue
+            assert 2 <= len(frames) <= MAX_FRAMES, (
+                f"BABY[{char_name}][{mood}] has {len(frames)} frames"
+            )
+            assert MAX_FRAMES % len(frames) == 0, (
+                f"BABY[{char_name}][{mood}] frame count must divide MAX_FRAMES"
+            )
 
 
 def test_baby_frames_have_exactly_three_lines():
@@ -281,11 +288,12 @@ def test_happy_mood_in_all_characters():
         assert "happy" in CHARACTERS[char_name], f"{char_name} missing happy mood"
 
 
-def test_happy_mood_has_two_frames():
-    """Happy mood should have exactly 2 frames for all characters."""
+def test_happy_mood_animates_for_every_character():
+    """Happy animates everywhere; the secret buddy is allowed extra frames."""
     for char_name in NAMES:
         frames = CHARACTERS[char_name]["happy"]
-        assert len(frames) == 2, f"{char_name}/happy has {len(frames)} frames, expected 2"
+        assert 2 <= len(frames) <= MAX_FRAMES, f"{char_name}/happy has {len(frames)} frames"
+        assert MAX_FRAMES % len(frames) == 0, f"{char_name}/happy frame count must divide"
 
 
 def test_happy_in_compact_for_all_characters():

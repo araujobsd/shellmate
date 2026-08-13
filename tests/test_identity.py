@@ -175,12 +175,14 @@ def test_identity_is_frozen():
 # made it 1 in 12.
 
 
-def test_rare_species_is_not_in_the_common_pool():
-    from shellmate.characters import COMMON_NAMES, NAMES, RARE_SPECIES
+def test_rare_and_secret_species_are_not_in_the_common_pool():
+    from shellmate.characters import COMMON_NAMES, NAMES, RARE_SPECIES, SECRET_SPECIES
 
     assert RARE_SPECIES in NAMES
+    assert SECRET_SPECIES in NAMES
     assert RARE_SPECIES not in COMMON_NAMES
-    assert set(COMMON_NAMES) | {RARE_SPECIES} == set(NAMES)
+    assert SECRET_SPECIES not in COMMON_NAMES
+    assert set(COMMON_NAMES) | {RARE_SPECIES, SECRET_SPECIES} == set(NAMES)
 
 
 def test_species_is_rare_exactly_when_the_seed_is_rare():
@@ -208,12 +210,18 @@ def test_rare_species_lands_near_its_advertised_odds():
     )
 
 
-def test_every_species_including_the_rare_one_is_reachable():
-    from shellmate.characters import NAMES
+def test_every_species_except_the_secret_one_is_reachable():
+    """The secret buddy must be unreachable by ANY seed — that is the whole point.
+
+    It is excluded from COMMON_NAMES and is not the rare roll either, so no amount
+    of re-rolling can produce it. The only way in is setting it in config.toml.
+    """
+    from shellmate.characters import NAMES, SECRET_SPECIES
     from shellmate.identity import species_from_seed
 
     seen = {species_from_seed(f"seed-{i}") for i in range(100_000)}
-    assert seen == set(NAMES), f"unreachable: {set(NAMES) - seen}"
+    assert SECRET_SPECIES not in seen, "the secret species was minted by a seed"
+    assert seen == set(NAMES) - {SECRET_SPECIES}, f"unreachable: {set(NAMES) - seen}"
 
 
 def test_rarity_is_deterministic_for_a_given_seed():

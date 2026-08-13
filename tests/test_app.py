@@ -267,9 +267,12 @@ def test_main_all_flag_shows_all_characters(capsys):
     main(["--all"])
     captured = capsys.readouterr()
 
-    # Every character name should appear
-    for name in characters.NAMES:
+    # Every PUBLIC character appears; the secret one must not be listed at all.
+    for name in characters.PUBLIC_NAMES:
         assert name in captured.out
+    assert characters.SECRET_SPECIES not in captured.out, (
+        "the secret buddy was listed in --all; it is meant to be undiscoverable"
+    )
 
     # Every mood should appear
     for mood in characters.MOODS:
@@ -298,10 +301,12 @@ def test_main_all_flag_config_hint_appears_once_per_character(capsys):
     main(["--all"])
     captured = capsys.readouterr()
 
-    # Each character's config hint should appear exactly once
-    for char_name in characters.NAMES:
+    # Each public character's config hint appears exactly once.
+    for char_name in characters.PUBLIC_NAMES:
         count = captured.out.count(f'character = "{char_name}"')
         assert count == 1, f"Config hint for {char_name} appeared {count} times, expected 1"
+    # ...and the secret one is not advertised, though it still works if you set it.
+    assert captured.out.count(f'character = "{characters.SECRET_SPECIES}"') == 0
 
 
 def test_main_face_flag_returns_zero(capsys, monkeypatch):

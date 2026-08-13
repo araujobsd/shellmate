@@ -499,7 +499,7 @@ def show_all_characters() -> int:
     _write_sprite_row(list(characters.EGG))
     sys.stdout.write("\n")
 
-    for char_name in characters.NAMES:
+    for char_name in characters.PUBLIC_NAMES:
         marker = "  (default)" if char_name == characters.DEFAULT_CHARACTER else ""
         if char_name == characters.RARE_SPECIES:
             marker = f"  (rare — rolled 1 in {characters.RARE_ODDS})"
