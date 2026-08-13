@@ -318,6 +318,24 @@ def test_main_face_flag_returns_zero(capsys, monkeypatch):
     assert result == 0
 
 
+def _pin_identity(monkeypatch, age_seconds):
+    """Pin --face to a synthetic identity of a given age.
+
+    Without this the test reads the developer's real identity.json, so what it
+    asserts depends on how old their buddy happens to be — it passed for months
+    and then broke the day someone reinstalled, because a fresh install is an
+    egg and eggs render an egg face, correctly. A CI runner mints a newborn
+    every run, so the unpinned version was a latent red on any clean machine.
+    """
+    import time
+
+    from shellmate.identity import Identity
+
+    born_at = time.time() - age_seconds
+    ident = Identity(seed="0" * 32, name="Testu", species="cat", born_at=born_at)
+    monkeypatch.setattr("shellmate.app.store.load_identity", lambda _path: ident)
+
+
 def test_main_face_flag_prints_compact_face(capsys, monkeypatch):
     from shellmate import characters
     from shellmate.app import main
@@ -327,6 +345,7 @@ def test_main_face_flag_prints_compact_face(capsys, monkeypatch):
 
     monkeypatch.setattr("shellmate.app.config_mod.load_config", mock_load_config)
     monkeypatch.setattr("shellmate.app.session.sample", lambda: ([], True))
+    _pin_identity(monkeypatch, characters.EGG_SECONDS + 3600)  # hatched
 
     main(["--face"])
     captured = capsys.readouterr()
@@ -341,6 +360,29 @@ def test_main_face_flag_prints_compact_face(capsys, monkeypatch):
 
     cleaned = re.sub(r"\033\[[0-9;]*m", "", output)
     assert expected in cleaned
+
+
+def test_main_face_flag_shows_egg_before_hatching(capsys, monkeypatch):
+    """A buddy still inside its egg shows an egg face, not its species face.
+
+    This is what a brand-new install renders in the status line, so it is the
+    first thing every user sees. It regressed once already: --face had no
+    concept of hatching and showed a small owl on a fresh macOS install.
+    """
+    from shellmate import characters
+    from shellmate.app import main
+
+    monkeypatch.setattr("shellmate.app.config_mod.load_config", lambda: Config(character="cat"))
+    monkeypatch.setattr("shellmate.app.session.sample", lambda: ([], True))
+    _pin_identity(monkeypatch, 60)  # one minute old — still an egg
+
+    main(["--face"])
+    import re
+
+    cleaned = re.sub(r"\033\[[0-9;]*m", "", capsys.readouterr().out.strip())
+
+    assert cleaned in characters.EGG_COMPACT
+    assert cleaned != characters.compact_for("cat", "sleeping")
 
 
 def test_main_face_flag_never_notifies(monkeypatch):

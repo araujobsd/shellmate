@@ -84,13 +84,18 @@ def species_from_seed(seed: str) -> str:
 def age_label(born_at: float, now: float) -> str:
     """Format buddy's age in human-readable form.
 
-    Returns strings like "just hatched", "2h old", "3d old", "5w old".
+    Returns strings like "just laid", "2h old", "3d old", "5w old".
     Pure function.
+
+    Note the under-a-minute case says "just laid", not "just hatched": for the
+    first 8 hours the buddy is still an egg, so reporting it as hatched
+    contradicts the "(egg)" stage shown beside it — and that pairing is the
+    very first thing a new user reads.
     """
     elapsed = now - born_at
 
     if elapsed < 60:
-        return "just hatched"
+        return "just laid"
 
     minutes = int(elapsed // 60)
     if minutes < 60:

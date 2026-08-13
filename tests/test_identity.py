@@ -102,11 +102,25 @@ def test_name_and_species_vary_independently():
     assert name != species  # Technically species is a key, name is a name
 
 
-def test_age_label_just_hatched():
-    """Age < 60 seconds returns 'just hatched'."""
+def test_age_label_newborn():
+    """Age < 60 seconds returns 'just laid'.
+
+    Not "just hatched": the first 8 hours are the egg stage, and --whoami prints
+    the age beside the stage, so "just hatched (egg)" contradicted itself on the
+    very first line of a clean install.
+    """
     now = 1000.0
     born_at = 999.0
-    assert age_label(born_at, now) == "just hatched"
+    assert age_label(born_at, now) == "just laid"
+
+
+def test_age_label_never_claims_hatched_during_egg_stage():
+    """No label produced inside the egg window may say "hatched"."""
+    from shellmate.characters import EGG_SECONDS
+
+    now = 1_000_000.0
+    for age in (0.0, 1.0, 59.9, 60.0, 3600.0, EGG_SECONDS - 1):
+        assert "hatch" not in age_label(now - age, now), f"age={age}"
 
 
 def test_age_label_minutes():
