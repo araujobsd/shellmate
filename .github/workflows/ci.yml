@@ -52,8 +52,16 @@ jobs:
           cache="${XDG_RUNTIME_DIR:-/tmp}/shellmate"
           rm -rf "$cache"
 
-          # First call warms the cache via the backgrounded cold path.
-          SHELLMATE_HOME=$PWD sh statusline/shellmate-sprite.sh >/dev/null 2>&1 || true
+          # The FIRST call on a cold cache must already print a buddy. It used to
+          # print nothing: the hot path cats a frame the backgrounded cold path
+          # had only just been told to create, so a new session showed no buddy
+          # and the status line grew by three lines a second later.
+          first=$(SHELLMATE_HOME=$PWD sh statusline/shellmate-sprite.sh 2>/dev/null)
+          if [ -z "$first" ]; then
+            echo "first render on a cold cache was empty"
+            exit 1
+          fi
+          printf 'first render:\n%s\n' "$first"
           sleep 5
 
           # The cold path must have WRITTEN frames, not merely exited 0.

@@ -9,6 +9,10 @@
 #                                                 animation frames, cache them
 #   hot path  (every render):                     cat one cached frame
 #
+# The one exception is a cold cache, where the cold path runs in the FOREGROUND:
+# there is no cached frame to print, and blocking once (~250ms measured) beats
+# rendering an empty status line that grows by three lines a second later.
+#
 # Display-only: never notifies. Fails silent, so the statusline degrades to its
 # normal single line if anything breaks.
 
@@ -16,6 +20,7 @@ SHELLMATE_HOME="${SHELLMATE_HOME:=$(cd "$(dirname "$0")/.." && pwd)}"
 CACHE_ROOT="${XDG_RUNTIME_DIR:-/tmp}/shellmate"
 TTL=2
 STALENESS_THRESHOLD=$((TTL * 6))  # 12 seconds
+WARMUP_COOLDOWN=300               # after a failed foreground warmup, don't retry for 5 min
 
 [ -d "$SHELLMATE_HOME" ] || exit 0
 
@@ -62,9 +67,9 @@ if [ -f "$stamp" ]; then
     [ $((now - mtime)) -lt "$TTL" ] && stale=0
 fi
 
-# --- cold path: refresh the cached frames in the background, never blocking ---
-if [ "$stale" -eq 1 ]; then
-    : > "$stamp"          # claim the refresh immediately so panes do not stampede
+# --- cold path: re-render both frames. Backgrounded normally; run in the
+# foreground on a cold cache, see the dispatch below. ---
+render_cold() {
     (
         cd "$SHELLMATE_HOME" || exit 0
         # Clean up old per-session caches (not touched in over 1 hour)
@@ -213,7 +218,45 @@ for i in range(2):
         fh.write(body + "\n")
     os.replace(tmp, f"{cache}/offline")
 PY
-    ) >/dev/null 2>&1 &
+    )
+}
+
+# Both call sites MUST redirect here rather than inside render_cold. Backgrounding
+# a function call forks a shell that holds the caller's stdout — our status line's
+# command-substitution pipe — open for the whole render, so `$(...)` blocks until
+# the "background" work finishes. Redirecting at the call site closes that pipe
+# before the render starts. Measured: 20ms with, 230ms without.
+
+# A cold cache has no frames for the hot path to print, so the first render of a
+# new session printed nothing at all and the status line grew by three lines a
+# second later. Render in the foreground just that once (~110ms) so the buddy is
+# there from the very first frame.
+cold=0
+{ [ -f "$CACHE_DIR/frame0" ] && [ -f "$CACHE_DIR/frame1" ]; } || cold=1
+
+# Blocking is only acceptable because it happens once. On an install where the
+# render cannot work at all — no python3, broken import — every render would
+# otherwise stall for the full run_bounded timeout, which is far worse than the
+# empty frame this fixes. So one failed warmup disables foreground rendering for
+# WARMUP_COOLDOWN and we fall back to the old behaviour: background, empty first.
+warmup=0
+if [ "$cold" -eq 1 ] && command -v python3 >/dev/null 2>&1; then
+    warmup=1
+    marker="$CACHE_ROOT/warmup_failed"
+    if [ -f "$marker" ] && [ $((now - $(file_mtime "$marker"))) -lt "$WARMUP_COOLDOWN" ]; then
+        warmup=0
+    fi
+fi
+
+if [ "$stale" -eq 1 ]; then
+    : > "$stamp"          # claim the refresh immediately so panes do not stampede
+    if [ "$warmup" -eq 1 ]; then
+        render_cold >/dev/null 2>&1
+        # Frames still missing means the render is broken, not merely slow.
+        [ -f "$CACHE_DIR/frame0" ] || : > "$CACHE_ROOT/warmup_failed"
+    else
+        render_cold >/dev/null 2>&1 &
+    fi
 fi
 
 # --- hot path: pure bash, just print the frame for this second ---
