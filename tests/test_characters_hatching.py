@@ -3,6 +3,9 @@
 import time
 
 from shellmate.characters import (
+    BABY,
+    BABY_MOODS,
+    CHARACTERS,
     EGG,
     EGG_COMPACT,
     IDLE,
@@ -11,10 +14,15 @@ from shellmate.characters import (
     SPRITE_MAX_COLS,
     compact_for,
     egg_compact_for,
+    frames_for,
     hatch_stage,
     idle_frame,
 )
 from shellmate.textwidth import width
+
+# Moods that deliberately render full-size at every age. They carry a signal, so
+# they stay legible rather than shrinking. Documented in the README.
+SIGNAL_MOODS = ("alert", "alarmed", "offline")
 
 
 def test_egg_exists():
@@ -231,3 +239,57 @@ def test_compact_for_without_birth_info_is_unchanged():
     # Callers that cannot supply birth info keep the old behaviour rather than
     # guessing — never show an egg for a buddy whose age we do not know.
     assert compact_for("owl", "working") == "{o.o}"
+
+
+def test_baby_covers_every_baby_mood_for_every_species():
+    """Every species needs hatchling art for every mood listed in BABY_MOODS.
+
+    A mood missing here does not raise — frames_for silently falls back to the
+    adult sprite, so the only symptom is the buddy changing size on screen.
+    """
+    for species in NAMES:
+        assert species in BABY, f"{species} has no hatchling art at all"
+        for mood in BABY_MOODS:
+            assert mood in BABY[species], f"{species} is missing hatchling {mood}"
+            frames = BABY[species][mood]
+            assert len(frames) == 2, f"{species}/{mood} has {len(frames)} frames"
+            for i, frame in enumerate(frames):
+                assert len(frame) == SPRITE_LINES, f"{species}/{mood} f{i} line count"
+                for line in frame:
+                    assert width(line) <= SPRITE_MAX_COLS, f"{species}/{mood} f{i}: {line!r}"
+
+
+def test_hatchling_does_not_grow_up_on_perked_or_happy():
+    """The bug this pins: a hatchling jumped to full adult size when perked.
+
+    perked fires at the end of every turn and happy on every pet, so the buddy
+    visibly grew up and shrank back over and over during normal use.
+    """
+    for species in NAMES:
+        for mood in BABY_MOODS:
+            got = frames_for(species, mood, stage="hatchling")
+            assert got == BABY[species][mood], f"{species}/{mood} is not the baby sprite"
+            assert got != CHARACTERS[species][mood], f"{species}/{mood} fell back to adult"
+
+
+def test_signal_moods_stay_full_size_at_every_age():
+    """alert/alarmed/offline are age-independent on purpose — do not shrink them."""
+    for species in NAMES:
+        for mood in SIGNAL_MOODS:
+            assert mood not in BABY_MOODS
+            assert frames_for(species, mood, stage="hatchling") == CHARACTERS[species][mood]
+
+
+def test_sprite_art_has_no_escaped_quote_artifacts():
+    r"""Raw strings cannot escape their own quote: r"-\"-\"-" keeps the backslash.
+
+    The baby owl's feet shipped that way and rendered as -\"-\"- instead of -"-"-.
+    """
+    for table_name, table in (("BABY", BABY), ("CHARACTERS", CHARACTERS)):
+        for species, moods in table.items():
+            for mood, frames in moods.items():
+                for i, frame in enumerate(frames):
+                    for line in frame:
+                        assert "\\" + '"' not in line, (
+                            f'{table_name}[{species}][{mood}] f{i}: {line!r} contains \\"'
+                        )

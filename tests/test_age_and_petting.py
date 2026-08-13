@@ -153,11 +153,16 @@ def test_frames_for_returns_baby_sprites_for_hatchling():
 
 
 def test_frames_for_returns_adult_for_hatchling_missing_mood():
-    """frames_for falls back to adult sleeping when baby mood unavailable."""
-    # Baby only has sleeping and working; test with perked (hatchling)
+    """frames_for falls back to the adult sprite when baby art is unavailable.
+
+    Uses alert, which has no baby art on purpose: alert/alarmed/offline carry a
+    signal and stay full-size at every age. This test used to use perked, back
+    when perked had no baby art either — but that was a bug rather than a
+    decision, and it made a hatchling grow to adult size at the end of every turn.
+    """
     name = DEFAULT_CHARACTER
-    frames = frames_for(name, "perked", stage="hatchling")
-    assert frames == CHARACTERS[name]["perked"]
+    frames = frames_for(name, "alert", stage="hatchling")
+    assert frames == CHARACTERS[name]["alert"]
 
 
 def test_frames_for_returns_adult_for_juvenile():

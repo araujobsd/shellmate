@@ -21,7 +21,11 @@ distinct voice. Constraints, enforced by tests/test_characters.py:
 """
 
 MOODS = ("sleeping", "working", "happy", "perked", "alert", "alarmed", "offline")
-BABY_MOODS = ("sleeping", "working")
+# Moods that have hatchling art. alert/alarmed/offline are deliberately absent:
+# they carry a signal, so they render full-size at every age to stay legible.
+# perked and happy are NOT signals — without baby art here a hatchling jumped to
+# full adult size at the end of every single turn, and again on every pet.
+BABY_MOODS = ("sleeping", "working", "perked", "happy")
 SPRITE_LINES = 3
 SPRITE_MAX_COLS = 12
 
@@ -447,15 +451,35 @@ BABY = {
             [r" /\_\ ", r"(o.o)", r" >^<  "],
             [r" /\_\ ", r"(o.O)", r" >^<  "],
         ],
+        "perked": [
+            [r" /\_\ ", r"(o.o)?", r" >^<  "],
+            [r" /\_\ ", r"(O.o)?", r" >^<  "],
+        ],
+        "happy": [
+            [r" /\_\ ", r"(>.<)*", r" >^<  "],
+            [r" /\_\ ", r"(>w<)*", r" >^<  "],
+        ],
     },
+    # The owl's feet are '-"-"-'. They were written as a raw string with escaped
+    # quotes, r"-\"-\"-", which renders the backslashes literally — a raw string
+    # cannot escape its quote. Same family of art bug as the missing penguin
+    # flipper and cactus arms.
     "owl": {
         "sleeping": [
-            [r" ,_, ", r"(-,-) z", r"-\"-\"-"],
-            [r" ,_, ", r"(-,-) zz", r"-\"-\"-"],
+            [r" ,_, ", r"(-,-) z", '-"-"-'],
+            [r" ,_, ", r"(-,-) zz", '-"-"-'],
         ],
         "working": [
-            [r" ,_, ", r"(o,o) ", r"-\"-\"-"],
-            [r" ,_, ", r"(o,O) ", r"-\"-\"-"],
+            [r" ,_, ", r"(o,o) ", '-"-"-'],
+            [r" ,_, ", r"(o,O) ", '-"-"-'],
+        ],
+        "perked": [
+            [r" ,_, ", r"(o,o) ?", '-"-"-'],
+            [r" ,_, ", r"(O,o) ?", '-"-"-'],
+        ],
+        "happy": [
+            [r" ,_, ", r"(>,<) *", '-"-"-'],
+            [r" ,_, ", r"(>w<) *", '-"-"-'],
         ],
     },
     "blob": {
@@ -467,6 +491,15 @@ BABY = {
             [r"  .-. ", r"(o.o)", r"  `-' "],
             [r"  .-. ", r"(o.O)", r"  `-' "],
         ],
+        "perked": [
+            [r"  .-. ", r"(o.o)?", r"  `-' "],
+            [r"  .-. ", r"(O.o)?", r"  `-' "],
+        ],
+        # Mouth turns wavy when happy, matching the adult's `---' -> `~~~'.
+        "happy": [
+            [r"  .-. ", r"(>.<)*", r"  `~' "],
+            [r"  .-. ", r"(>w<)*", r"  `~' "],
+        ],
     },
     "dog": {
         "sleeping": [
@@ -477,22 +510,39 @@ BABY = {
             [r"/^-^\ ", r"(o.o)", r"\_ w/"],
             [r"/^-^\ ", r"(o.o)", r"\_ v/"],
         ],
+        "perked": [
+            [r"/^-^\ ", r"(o.o)?", r"\_ w/"],
+            [r"/^-^\ ", r"(O.o)?", r"\_ v/"],
+        ],
+        "happy": [
+            [r"/^-^\ ", r"(>.<)*", r"\_ W/"],
+            [r"/^-^\ ", r"(>w<)*", r"\_ w/"],
+        ],
     },
     "penguin": {
         "sleeping": [[r"  ,.   ", r"<(-.-)>z", r"  ^^   "], [r"  ,.   ", r"<(-.-)>zz", r"  ^^   "]],
         "working": [[r"  ,.   ", r"<(o.o)>", r"  ^^   "], [r"  ,.   ", r"<(o.O)>", r"  ^^   "]],
+        "perked": [[r"  ,.   ", r"<(o.o)>?", r"  ^^   "], [r"  ,.   ", r"<(O.o)>?", r"  ^^   "]],
+        "happy": [[r"  ,.   ", r"<(^.^)>*", r"  ^^   "], [r"  ,.   ", r"<(>.<)>*", r"  ^^^  "]],
     },
     "frog": {
         "sleeping": [[r" - -   ", r"( -.- )z", r"  \/   "], [r" - -   ", r"( -.- )zz", r"  \/   "]],
         "working": [[r" @ @   ", r"( o.o )", r"  \/   "], [r" @ @   ", r"( o.O )", r"  \/   "]],
+        "perked": [[r" @ @   ", r"( o.o )?", r"  \/   "], [r" @ @   ", r"( O.o )?", r"  \/   "]],
+        "happy": [[r" @ @   ", r"( ^.^ )*", r"  \/   "], [r" @ @   ", r"( >.< )*", r"  \o/  "]],
     },
     "ghost": {
         "sleeping": [[r"  __   ", r" (-.-)z", r"  ~~~  "], [r"  __   ", r" (-.-)zz", r"  ~~~  "]],
         "working": [[r"  __   ", r" (o.o)", r"  ~~~  "], [r"  __   ", r" (o.O)", r"  ~-~  "]],
+        "perked": [[r"  __   ", r" (o.o)?", r"  ~~~  "], [r"  __   ", r" (O.o)?", r"  ~-~  "]],
+        "happy": [[r"  __   ", r" (^.^)*", r"  ~~~  "], [r"  __   ", r" (>.<)*", r"  ~-~  "]],
     },
     "robot": {
         "sleeping": [[r"   |   ", r"  [-.-]z", r"   ^   "], [r"   |   ", r"  [-.-]zz", r"   ^   "]],
         "working": [[r"   |   ", r"  [o.o]", r"   ^   "], [r"   |   ", r"  [o.O]", r"   ^   "]],
+        "perked": [[r"   |   ", r"  [o.o]?", r"   ^   "], [r"   |   ", r"  [O.o]?", r"   ^   "]],
+        # Antenna pops to '!' on the second frame, as the adult's _|_ -> _!_ does.
+        "happy": [[r"   |   ", r"  [^.^]*", r"   ^   "], [r"   !   ", r"  [>.<]*", r"   ^   "]],
     },
     "cactus": {
         "sleeping": [
@@ -500,10 +550,15 @@ BABY = {
             [r"  \|/  ", r" |(-.-)|zz", r"  |_|  "],
         ],
         "working": [[r"  \|/  ", r" |(o.o)|", r"  |_|  "], [r"  \|/  ", r" |(o.O)|", r"  |_|  "]],
+        "perked": [[r"  \|/  ", r" |(o.o)|?", r"  |_|  "], [r"  \|/  ", r" |(O.o)|?", r"  |_|  "]],
+        # Sparkle crosses the flower, as in the adult.
+        "happy": [[r"  \|/ *", r" |(^.^)|", r"  |_|  "], [r" *\|/  ", r" |(>.<)|", r"  |_|  "]],
     },
     "crab": {
         "sleeping": [[r" (\/)  ", r" (-.-)z", r" /'\   "], [r" (\/)  ", r" (-.-)zz", r" /'\   "]],
         "working": [[r" (\/)  ", r" (o.o)", r" /'\   "], [r" (/\)  ", r" (o.O)", r" \'/   "]],
+        "perked": [[r" (\/)  ", r" (o.o)?", r" /'\   "], [r" (/\)  ", r" (O.o)?", r" \'/   "]],
+        "happy": [[r" (\/) *", r" (^.^)", r" /'\   "], [r" (/\)* ", r" (>.<)", r" \'/   "]],
     },
     "octopus": {
         "sleeping": [
@@ -511,6 +566,8 @@ BABY = {
             [r"  ,^.  ", r" (~-.-~)zz", r"  |~|  "],
         ],
         "working": [[r"  ,^.  ", r" (~o.o~)", r"  |~|  "], [r"  ,^.  ", r" (~o.O~)", r"  ~|~  "]],
+        "perked": [[r"  ,^.  ", r" (~o.o~)?", r"  |~|  "], [r"  ,^.  ", r" (~O.o~)?", r"  ~|~  "]],
+        "happy": [[r"  ,^. *", r" (~^.^~)", r"  |~|  "], [r" *,^.  ", r" (~>.<~)", r"  ~|~  "]],
     },
 }
 
