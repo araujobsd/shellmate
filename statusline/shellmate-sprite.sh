@@ -84,7 +84,7 @@ from shellmate.config import load_config
 from shellmate.escalation import advance
 from shellmate.session import sample
 from shellmate.store import default_path, identity_path, load, load_identity, save_identity, save
-from shellmate.theme import COLORS, RESET
+from shellmate.theme import COLORS, RESET, species_color, split_marks
 from shellmate.textwidth import width, truncate
 from shellmate.identity import new_seed, name_from_seed, species_from_seed, Identity
 from shellmate.update import check_for_update_cached
@@ -149,6 +149,15 @@ role = {"sleeping": "dim", "working": "blue", "happy": "green", "perked": "green
         "alert": "yellow", "alarmed": "red", "offline": "dim"}[mood]
 col, reset = COLORS[role], RESET
 
+
+def paint(line, body_col, mark_col):
+    """Body in the species colour, trailing marks in the mood colour."""
+    body_part, marks = split_marks(line)
+    out = f"{body_col}{body_part}{RESET}"
+    if marks:
+        out += f"{mark_col}{marks}{RESET}"
+    return out
+
 # Check if we're still hatching (duration defaults to EGG_SECONDS = 8 hours)
 egg_idx = hatch_stage(identity.born_at, now_time)
 
@@ -163,7 +172,10 @@ else:
 # Render frames for current mood
 for i in range(2):
     frame = frames_data[i % len(frames_data)]
-    body = "\n".join(f"{col}{ln}{reset}" for ln in frame)
+    # The egg has no species yet, so it stays on the mood colour; once hatched the
+    # body wears the species colour and only the marks track the mood.
+    frame_body_col = col if egg_idx is not None else species_color(effective_character)
+    body = "\n".join(paint(ln, frame_body_col, col) for ln in frame)
 
     # Append name and phrase if configured
     body_lines = body.split("\n")
@@ -183,7 +195,9 @@ for i in range(2):
             # Mood stage: append name and phrase if configured
             name_display = ""
             if cfg.show_name:
-                name_display = f"  {COLORS['dim']}{identity.name}{reset}"
+                # Name carries the mood colour: it is the urgency channel now that
+                # the body is a fixed species colour.
+                name_display = f"  {col}{identity.name}{reset}"
 
             phrase_display = ""
             if cfg.show_phrase:
@@ -206,7 +220,7 @@ offline_frames = frames_for(effective_character, "offline")
 offline_col, offline_reset = COLORS["dim"], RESET
 for i in range(2):
     frame = offline_frames[i % len(offline_frames)]
-    body = "\n".join(f"{offline_col}{ln}{offline_reset}" for ln in frame)
+    body = "\n".join(paint(ln, species_color(effective_character), offline_col) for ln in frame)
     if egg_idx is None:
         body_lines = body.split("\n")
         if body_lines:

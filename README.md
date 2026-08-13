@@ -84,6 +84,12 @@ not by size. `alert`, `alarmed` and `offline` never animate idly, and `offline`
 does not animate at all: a buddy that can't see session state shouldn't look
 alive.
 
+Each species has its own colour and keeps it in every mood, so your buddy looks
+like itself all day. The mood colour rides on the trailing marks (`z`, `?`, `*`,
+`!`, `!!`, `..`) and on its name instead. Species colours are held a minimum
+distance from every mark colour — otherwise a tan dog's yellow `!` would vanish
+into its own body exactly when it mattered.
+
 ## Petting
 
 ```

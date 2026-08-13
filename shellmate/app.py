@@ -429,17 +429,31 @@ def check_update() -> int:
 _COLUMN = characters.SPRITE_MAX_COLS + 2  # sprite budget plus a two-space gutter
 
 
-def _write_sprite_row(frames: list[list[str]], indent: int = 4) -> None:
+def _write_sprite_row(
+    frames: list[list[str]],
+    indent: int = 4,
+    body_color: str = "",
+    mark_color: str = "",
+) -> None:
     """Write frames side by side, one text line at a time.
 
     Padding is computed from display width, never len(), so sprites containing
-    wide or ambiguous-width glyphs still line up.
+    wide or ambiguous-width glyphs still line up — and it is computed on the
+    uncoloured text, since escape sequences occupy no columns.
     """
     for line_idx in range(characters.SPRITE_LINES):
         cells = []
         for frame in frames:
             line = frame[line_idx] if line_idx < len(frame) else ""
-            cells.append(line + " " * max(1, _COLUMN - width(line)))
+            pad = " " * max(1, _COLUMN - width(line))
+            if body_color:
+                body, marks = theme.split_marks(line)
+                painted = f"{body_color}{body}{theme.RESET}"
+                if marks:
+                    painted += f"{mark_color}{marks}{theme.RESET}"
+                cells.append(painted + pad)
+            else:
+                cells.append(line + pad)
         sys.stdout.write(" " * indent + "".join(cells).rstrip() + "\n")
 
 
@@ -463,6 +477,17 @@ def show_all_characters() -> int:
     config_path = "~/.config/shellmate/config.toml"
     sys.stdout.write(f"Configuration: add to {config_path}\n\n")
 
+    colors = color_enabled()
+    mood_colors = {
+        "sleeping": "dim",
+        "working": "blue",
+        "perked": "green",
+        "happy": "green",
+        "alert": "yellow",
+        "alarmed": "red",
+        "offline": "dim",
+    }
+
     egg_hours = characters.EGG_SECONDS // 3600
     sys.stdout.write(f"EGG — shared by every buddy, first {egg_hours}h. One frame per stage:\n\n")
     _write_sprite_row(list(characters.EGG))
@@ -479,15 +504,16 @@ def show_all_characters() -> int:
             adult = characters.frames_for(char_name, mood, stage="adult")
             sys.stdout.write(f"  {mood:<10} {mood_descriptions.get(mood, '')}\n")
 
+            body = theme.species_color(char_name) if colors else ""
+            mark = theme.COLORS[mood_colors.get(mood, "dim")] if colors else ""
+
             if hatchling == adult:
-                # alert/alarmed/offline carry a signal, so they stay full-size at
-                # every age. Say so, rather than printing the same art twice.
                 sys.stdout.write("    (same at every age)\n")
-                _write_sprite_row(adult)
+                _write_sprite_row(adult, body_color=body, mark_color=mark)
             else:
                 labels = "hatchling".ljust(_COLUMN * len(hatchling)) + "adult"
                 sys.stdout.write(" " * 4 + labels + "\n")
-                _write_sprite_row(hatchling + adult)
+                _write_sprite_row(hatchling + adult, body_color=body, mark_color=mark)
 
             sys.stdout.write("\n")
 
