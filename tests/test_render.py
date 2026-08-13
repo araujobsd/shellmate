@@ -72,8 +72,17 @@ def test_frames_alternate():
 
 
 def test_frame_index_wraps():
+    """The frame index wraps at the sprite's own frame count, not a fixed 2.
+
+    Calm moods now carry four frames, so frame 0 and frame 2 are genuinely
+    different pictures; wrapping happens a full loop later.
+    """
+    from shellmate.characters import DEFAULT_CHARACTER, frames_for
+
+    period = len(frames_for(DEFAULT_CHARACTER, "sleeping"))
     s = snap(mood="sleeping")
-    assert frame(s, 0, 28, color=False) == frame(s, 2, 28, color=False)
+    assert frame(s, 0, 28, color=False) == frame(s, period, 28, color=False)
+    assert frame(s, 0, 28, color=False) != frame(s, 1, 28, color=False)
 
 
 def test_offline_mood_is_static_across_frames():
