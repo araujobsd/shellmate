@@ -26,6 +26,7 @@ class Config:
     ascii_glyphs: bool = False
     show_name: bool = True  # Show buddy's name in statusline sprite
     show_phrase: bool = True  # Show mood-specific phrases in statusline
+    check_updates: bool = True  # Check for updates on GitHub (once per 24h)
 
 
 def default_path() -> Path:

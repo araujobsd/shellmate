@@ -8,13 +8,14 @@ import sys
 import time
 from pathlib import Path
 
-from shellmate import characters, escalation, render, session, store, theme
+from shellmate import __version__, characters, escalation, render, session, store, theme
 from shellmate import config as config_mod
 from shellmate import identity as identity_mod
 from shellmate.config import Config
 from shellmate.models import Snapshot
 from shellmate.notify import Notifier
 from shellmate.textwidth import width
+from shellmate.update import check_for_update_cached
 
 DEFAULT_COLS = 30
 
@@ -389,6 +390,42 @@ def show_whoami() -> int:
         return 0
 
 
+def show_version() -> int:
+    """Print version and exit."""
+    sys.stdout.write(f"{__version__}\n")
+    sys.stdout.flush()
+    return 0
+
+
+def check_update() -> int:
+    """Check for updates and print result.
+
+    Prints one of:
+    - "shellmate 0.1.0 is up to date" (no update available)
+    - "shellmate 0.2.0 is available (you have 0.1.0)" + update instructions
+    - "could not check for updates" (network error or no releases published)
+    """
+    try:
+        cfg = config_mod.load_config()
+        latest = check_for_update_cached(__version__, time.time(), enabled=cfg.check_updates)
+        if latest:
+            sys.stdout.write(f"shellmate {latest} is available (you have {__version__})\n")
+            sys.stdout.write("\n")
+            sys.stdout.write("To update, run:\n")
+            sys.stdout.write("  cd ~/dev/shellmate-github  # or your checkout path\n")
+            sys.stdout.write("  git pull\n")
+            sys.stdout.write("  ./install.sh\n")
+        else:
+            # No update available (or no releases published yet)
+            sys.stdout.write(f"shellmate {__version__} is up to date\n")
+        sys.stdout.flush()
+        return 0
+    except Exception:
+        sys.stdout.write("could not check for updates\n")
+        sys.stdout.flush()
+        return 0
+
+
 def show_all_characters() -> int:
     """Display all available characters and moods without starting the loop."""
     mood_descriptions = {
@@ -442,6 +479,16 @@ def show_all_characters() -> int:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="shellmate")
     parser.add_argument(
+        "--version",
+        action="store_true",
+        help="print version and exit",
+    )
+    parser.add_argument(
+        "--check-update",
+        action="store_true",
+        help="check for updates and print newer version if available, then exit",
+    )
+    parser.add_argument(
         "--all",
         action="store_true",
         help="show all available buddies and exit",
@@ -473,6 +520,12 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     args = parser.parse_args(argv if argv is not None else sys.argv[1:])
+
+    if args.version:
+        return show_version()
+
+    if args.check_update:
+        return check_update()
 
     if args.all:
         return show_all_characters()

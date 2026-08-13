@@ -73,6 +73,7 @@ if [ "$stale" -eq 1 ]; then
         fi
         CACHE_DIR="$CACHE_DIR" run_bounded 3 python3 - <<'PY' 2>/dev/null
 import os, time
+from shellmate import __version__
 from shellmate.characters import frames_for, hatch_stage, idle_frame, EGG, stage_for, apply_petting, phrase_for, egg_phrase_for
 from shellmate.config import load_config
 from shellmate.escalation import advance
@@ -81,6 +82,7 @@ from shellmate.store import default_path, identity_path, load, load_identity, sa
 from shellmate.theme import COLORS, RESET
 from shellmate.textwidth import width, truncate
 from shellmate.identity import new_seed, name_from_seed, species_from_seed, Identity
+from shellmate.update import check_for_update_cached
 
 cache = os.environ["CACHE_DIR"]
 session_id = os.environ.get("SHELLMATE_SESSION_ID", "")
@@ -101,7 +103,13 @@ if identity is None:
     save_identity(identity_path(), identity)
 
 sessions, online = sample()
-snap, st, _ = advance(sessions, st, now_time, cfg, online)  # alerts discarded: display-only
+
+# Check for updates if enabled (cold path only; never blocks hot path)
+latest_version = None
+if online:
+    latest_version = check_for_update_cached(__version__, now_time, enabled=cfg.check_updates)
+
+snap, st, _ = advance(sessions, st, now_time, cfg, online, latest_version=latest_version)  # alerts discarded: display-only
 save(default_path(), st)
 
 # Determine which character to display

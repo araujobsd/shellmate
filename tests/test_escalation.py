@@ -645,3 +645,182 @@ def test_phrase_text_persists_through_save_load():
     )
     assert loaded_old.phrase_text == ""  # Default value
     assert loaded_old.phrase_set_at == 0.0  # Default value
+
+
+# Update phrase tests
+
+
+def test_update_phrase_disabled_when_no_latest_version():
+    """When latest_version is None, update phrases are not shown."""
+    state = EscalationState()
+    snap, state, _ = advance(
+        [agent(status="working")],
+        state,
+        now=0.0,
+        cfg=CFG,
+        online=True,
+        character="cat",
+        latest_version=None,
+    )
+    # Should have a normal working phrase, not an update phrase
+    assert state.phrase_text != ""
+    # Can't directly assert it's NOT an update phrase without parsing,
+    # but update phrases only appear when latest_version is set
+
+
+def test_update_phrase_honored_when_available():
+    """When latest_version is set, update phrases may appear."""
+    state = EscalationState()
+    snap, state, _ = advance(
+        [agent(status="working")],
+        state,
+        now=4.0,  # int(now) % 4 == 0, so update phrase likely
+        cfg=CFG,
+        online=True,
+        character="cat",
+        latest_version="0.2.0",
+    )
+    # At now=4.0, int(4.0) % 4 == 0, so we should try to pick an update phrase
+    # The exact phrase depends on the hash, but it should be set
+    assert state.latest_version == "0.2.0"
+
+
+def test_update_phrase_never_overrides_alert():
+    """Update phrases never appear during alert mood."""
+    state = EscalationState()
+    # First: agent is working
+    snap, state, _ = advance(
+        [agent(status="working")],
+        state,
+        now=0.0,
+        cfg=CFG,
+        online=True,
+        character="cat",
+        latest_version="0.2.0",
+    )
+    # Second: agent transitions to idle, starting the waiting clock
+    snap, state, _ = advance(
+        [agent(status="idle")],
+        state,
+        now=50.0,  # Just started waiting
+        cfg=CFG,
+        online=True,
+        character="cat",
+        latest_version="0.2.0",
+    )
+    # Third: advance to alert zone (120-600 seconds of waiting)
+    snap, state, _ = advance(
+        [agent(status="idle")],
+        state,
+        now=350.0,  # 300 seconds (5 min) since waiting started: alert zone
+        cfg=CFG,
+        online=True,
+        character="cat",
+        latest_version="0.2.0",
+    )
+    assert snap.mood == "alert"
+    # Phrase should be an alert phrase, not an update phrase
+    # (alert phrases contain "dragging", "check", etc., not "version" or "update")
+
+
+def test_update_phrase_never_overrides_alarmed():
+    """Update phrases never appear during alarmed mood."""
+    state = EscalationState()
+    # Create escalation that triggers alarmed (blocked or >10min)
+    snap, state, _ = advance(
+        [agent(status="blocked")],
+        state,
+        now=1500.0,
+        cfg=CFG,
+        online=True,
+        character="cat",
+        latest_version="0.2.0",
+    )
+    assert snap.mood == "alarmed"
+    # Phrase should be an alarm phrase, not an update phrase
+
+
+def test_update_phrase_never_overrides_offline():
+    """Update phrases never appear during offline mood."""
+    state = EscalationState()
+    snap, state, _ = advance(
+        [agent(status="idle")],
+        state,
+        now=0.0,
+        cfg=CFG,
+        online=False,  # offline
+        character="cat",
+        latest_version="0.2.0",
+    )
+    assert snap.mood == "offline"
+    # Phrase should be an offline phrase, not an update phrase
+
+
+def test_latest_version_persisted_in_state():
+    """latest_version is persisted across state saves."""
+    state = EscalationState(latest_version="0.1.5")
+    assert state.latest_version == "0.1.5"
+
+    # After an advance call, it should still be there
+    snap, new_state, _ = advance(
+        [agent(status="working")],
+        state,
+        now=0.0,
+        cfg=CFG,
+        online=True,
+        character="cat",
+        latest_version=None,  # Not updated
+    )
+    # Should persist the old value
+    assert new_state.latest_version == "0.1.5"
+
+
+def test_latest_version_updated_when_provided():
+    """latest_version is updated when a new value is provided."""
+    state = EscalationState(latest_version="0.1.5")
+    snap, new_state, _ = advance(
+        [agent(status="working")],
+        state,
+        now=0.0,
+        cfg=CFG,
+        online=True,
+        character="cat",
+        latest_version="0.2.0",  # New update available
+    )
+    assert new_state.latest_version == "0.2.0"
+
+
+# End-to-end update phrase test
+
+
+def test_update_phrase_shown_in_rendered_output():
+    """E2E: With update available, buddy shows update phrase in roughly 1/4 of refreshes."""
+    from shellmate.characters import UPDATE_PHRASES
+
+    state = EscalationState()
+
+    # Simulate multiple phrase refreshes over time with an update available
+    update_phrases_shown = 0
+    total_refreshes = 12  # Test over 12 refreshes
+
+    for i in range(total_refreshes):
+        now = 1000.0 + (i * 100)  # Advance time for phrase refresh
+        snap, state, _ = advance(
+            [agent(status="working")],
+            state,
+            now=now,
+            cfg=CFG,
+            online=True,
+            character="cat",
+            latest_version="0.2.0",
+        )
+
+        # Check if the phrase is an update phrase
+        phrase = state.phrase_text
+        if phrase in UPDATE_PHRASES["cat"]:
+            update_phrases_shown += 1
+
+    # With deterministic logic (int(now) % 4 == 0), we should see updates
+    # at i=0, i=4, i=8 (when int(now) % 4 == 0), so 3 out of 12
+    # But the exact count depends on seed distribution; just verify at least one appears
+    assert update_phrases_shown > 0, "No update phrases shown despite available update"

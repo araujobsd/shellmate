@@ -56,3 +56,4 @@ class EscalationState:
     mood_since: float = 0.0  # timestamp when current mood was entered (for stable phrases)
     phrase_text: str = ""  # the rendered phrase to display
     phrase_set_at: float = 0.0  # when phrase_text was chosen
+    latest_version: str | None = None  # newest version available, if known

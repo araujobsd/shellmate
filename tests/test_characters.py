@@ -13,10 +13,12 @@ from shellmate.characters import (
     PHRASES,
     SPRITE_LINES,
     SPRITE_MAX_COLS,
+    UPDATE_PHRASES,
     compact_for,
     egg_phrase_for,
     frames_for,
     phrase_for,
+    update_phrase_for,
 )
 from shellmate.textwidth import width
 
@@ -472,3 +474,70 @@ def test_egg_phrase_progression_across_frames():
         assert phrase in EGG_PHRASES[frame_idx], (
             f"Frame {frame_idx} phrase {phrase!r} not in frame pool"
         )
+
+
+# UPDATE_PHRASES tests
+
+
+def test_update_phrases_registry_present():
+    """UPDATE_PHRASES dict must exist and contain all characters."""
+    assert UPDATE_PHRASES is not None
+    assert set(UPDATE_PHRASES) == set(CHARACTERS)
+
+
+@pytest.mark.parametrize("name", NAMES)
+def test_update_phrases_exist_for_all_characters(name):
+    """Each character must have update phrases."""
+    phrases = UPDATE_PHRASES[name]
+    assert isinstance(phrases, tuple), f"{name}: not a tuple"
+    assert len(phrases) >= 3, f"{name}: {len(phrases)} phrases (need at least 3)"
+
+
+@pytest.mark.parametrize("name", NAMES)
+def test_update_phrases_within_column_budget(name):
+    """Each update phrase must be <= 42 display columns."""
+    for i, phrase in enumerate(UPDATE_PHRASES[name]):
+        w = width(phrase)
+        assert w <= 42, f"{name}/{i}: {phrase!r} is {w} columns (max 42)"
+
+
+@pytest.mark.parametrize("name", NAMES)
+def test_update_phrases_are_ascii(name):
+    """Update phrases must be ASCII only, no emoji."""
+    for i, phrase in enumerate(UPDATE_PHRASES[name]):
+        try:
+            phrase.encode("ascii")
+        except UnicodeEncodeError:
+            pytest.fail(f"{name}/{i}: {phrase!r} contains non-ASCII")
+
+
+@pytest.mark.parametrize("name", NAMES)
+def test_update_phrases_are_distinct(name):
+    """Within one character, all update phrases must be distinct."""
+    phrases = UPDATE_PHRASES[name]
+    assert len(phrases) == len(set(phrases)), f"{name}: duplicate phrases found"
+
+
+def test_update_phrase_for_deterministic():
+    """update_phrase_for must be deterministic: same input -> same output."""
+    phrase1 = update_phrase_for("cat", 1000.5)
+    phrase2 = update_phrase_for("cat", 1000.5)
+
+    assert phrase1 == phrase2, "Determinism failed for same seed"
+
+
+def test_update_phrase_for_falls_back_safely():
+    """update_phrase_for must not raise for unknown character."""
+    # Should fall back to default or return empty string
+    result = update_phrase_for("unknown_character", 1000.0)
+    assert isinstance(result, str)
+
+
+def test_update_phrase_for_returns_from_registry():
+    """update_phrase_for must return a phrase from UPDATE_PHRASES."""
+    for name in NAMES:
+        phrase = update_phrase_for(name, 1000.0)
+        if phrase:  # May be empty for fallback
+            assert phrase in UPDATE_PHRASES[name], (
+                f"{name}: {phrase!r} not in UPDATE_PHRASES[{name}]"
+            )

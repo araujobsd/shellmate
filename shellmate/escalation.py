@@ -4,7 +4,7 @@
 makes every tier transition testable without sleeping.
 """
 
-from shellmate.characters import phrase_for
+from shellmate.characters import phrase_for, update_phrase_for
 from shellmate.config import Config
 from shellmate.models import Agent, AgentView, Alert, EscalationState, Snapshot
 
@@ -122,10 +122,20 @@ def advance(
     cfg: Config,
     online: bool,
     character: str = "",
+    latest_version: str | None = None,
 ) -> tuple[Snapshot, EscalationState, list[Alert]]:
     """Fold a poll result into the escalation state.
 
     Returns a new state; the input is never mutated.
+
+    Args:
+        agents: list of agents to poll
+        state: current escalation state
+        now: current timestamp
+        cfg: configuration
+        online: whether the session is online
+        character: buddy character name
+        latest_version: newer version available (if any), for update notifications
     """
     live = {a.key for a in agents}
     waiting_since = {k: v for k, v in state.waiting_since.items() if k in live}
@@ -135,6 +145,7 @@ def advance(
     mood_since = state.mood_since  # Track when current mood began
     phrase_text = state.phrase_text  # the rendered phrase to display
     phrase_set_at = state.phrase_set_at  # when phrase_text was chosen
+    latest_version = latest_version or state.latest_version  # Persist if not updated
 
     views = []
     alerts: list[Alert] = []
@@ -188,7 +199,18 @@ def advance(
         pick_new_phrase = True
 
     if pick_new_phrase:
-        phrase_text = phrase_for(character, new_mood, now)
+        # Decide whether to show an update phrase (roughly 1 in 4 times, deterministically)
+        # Use the phrase seed to decide: if seed % 4 == 0, show update phrase
+        # Only show update phrases for non-distress moods (never override alert/alarmed/offline)
+        use_update_phrase = (
+            latest_version is not None and new_mood not in SIGNAL_MOODS and int(now) % 4 == 0
+        )
+
+        if use_update_phrase:
+            phrase_text = update_phrase_for(character, now)
+        else:
+            phrase_text = phrase_for(character, new_mood, now)
+
         phrase_set_at = now
     # else: keep existing phrase_text unchanged
 
@@ -206,6 +228,7 @@ def advance(
             mood_since=mood_since,
             phrase_text=phrase_text,
             phrase_set_at=phrase_set_at,
+            latest_version=latest_version,
         ),
         alerts,
     )

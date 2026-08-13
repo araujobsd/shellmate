@@ -1024,6 +1024,65 @@ PHRASES = {
 }
 
 
+UPDATE_PHRASES = {
+    "cat": (
+        "there's a newer version of me out there",
+        "apparently i have an upgrade waiting",
+        "newer me exists, if you're curious",
+    ),
+    "dog": (
+        "HEY THERE IS A NEWER ME UPDATE AVAILABLE",
+        "newer version ready! want to upgrade?",
+        "i heard there is a better me somewhere",
+    ),
+    "owl": (
+        "a more recent iteration has been released",
+        "an updated version exists, if you observe",
+        "newer software awaits your consideration",
+    ),
+    "blob": (
+        "blob news: blob 2.0 exists in the world",
+        "newer blob available. old blob still here.",
+        "blob has been updated. you are using blob.",
+    ),
+    "penguin": (
+        "a refined edition of myself exists",
+        "an improved version awaits your attention",
+        "propriety demands i mention my upgrade",
+    ),
+    "frog": (
+        "newer me exists. consider upgrading.",
+        "update available. change if you want.",
+        "newer version out there.",
+    ),
+    "ghost": (
+        "something newer... fading elsewhere...",
+        "an echo of a better version... waiting...",
+        "update existing... if you listen...",
+    ),
+    "robot": (
+        "NEWER VERSION AVAILABLE. CONSIDER UPDATE.",
+        "UPDATE DETECTED. CURRENT: DEPRECATED.",
+        "UPGRADE EXISTS. COMPATIBILITY CONFIRMED.",
+    ),
+    "cactus": (
+        "there exists a newer version",
+        "an update sits there. take it or don't.",
+        "newer me is out there if you need it",
+    ),
+    "crab": (
+        "sideways news: there's a fresher me",
+        "upgrade lurking to the side over there",
+        "newer crab available. pinch approved.",
+    ),
+    "octopus": (
+        "one arm found a newer version existing",
+        "eight limbs detected newer me somewhere",
+        "all eight arms pointing at update",
+    ),
+}
+
+
 def phrase_for(character: str, mood: str, seed: float) -> str:
     """Return a phrase for the given character and mood, seeded for determinism.
 
@@ -1067,6 +1126,28 @@ def egg_phrase_for(frame_index: int, seed: float) -> str:
 
     # Get the phrase pool for this frame
     phrase_tuple = EGG_PHRASES[clamped_index]
+    if not phrase_tuple:
+        return ""
+
+    # Use same deterministic hashing as phrase_for
+    seed_int = int(seed) ^ int((seed % 1) * 1e9)  # Combine whole and fractional parts
+    seed_int = (seed_int * 2654435761) & 0x7FFFFFFF  # Mix and keep positive
+    index = seed_int % len(phrase_tuple)
+    return phrase_tuple[index]
+
+
+def update_phrase_for(character: str, seed: float) -> str:
+    """Return an update notification phrase for the given character, seeded for determinism.
+
+    Same (character, seed) always yields the same phrase. The seed should be
+    the timestamp, ensuring stable deterministic selection.
+
+    Falls back safely for unknown character, never raises.
+
+    Pure function.
+    """
+    # Get the update phrases for this character, falling back to default if not found
+    phrase_tuple = UPDATE_PHRASES.get(character) or UPDATE_PHRASES.get(DEFAULT_CHARACTER)
     if not phrase_tuple:
         return ""
 
