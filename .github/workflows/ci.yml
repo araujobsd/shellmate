@@ -44,15 +44,49 @@ jobs:
 
       - name: Sprite script renders
         run: |
+          # Start from an empty cache. A previous version of this step asserted
+          # only that the script produced output, which it happily did from
+          # frames cached before a rename — so the cold path crashed on every
+          # run, no frames were ever written, the buddy never rendered, and CI
+          # stayed green. Clearing first is what makes this test mean anything.
+          cache="${XDG_RUNTIME_DIR:-/tmp}/shellmate"
+          rm -rf "$cache"
+
+          # First call warms the cache via the backgrounded cold path.
           SHELLMATE_HOME=$PWD sh statusline/shellmate-sprite.sh >/dev/null 2>&1 || true
-          sleep 4
-          out=$(SHELLMATE_HOME=$PWD sh statusline/shellmate-sprite.sh 2>/dev/null)
-          if [ -z "$out" ]; then
-            echo "sprite produced no output"
-            echo "--- cache dir ---"
-            ls -la "${XDG_RUNTIME_DIR:-/tmp}/shellmate" 2>&1 || true
+          sleep 5
+
+          # The cold path must have WRITTEN frames, not merely exited 0.
+          if [ ! -d "$cache" ] || [ -z "$(find "$cache" -name 'frame*' -print -quit)" ]; then
+            echo "cold path wrote no frames — it is failing silently"
+            echo "--- cache tree ---"; ls -laR "$cache" 2>&1 || true
+            echo "--- cold path with stderr shown ---"
+            sed 's|2>/dev/null||; s|) >/dev/null 2>&1 &|)|' statusline/shellmate-sprite.sh > /tmp/sprite-debug.sh
+            SHELLMATE_HOME=$PWD sh /tmp/sprite-debug.sh 2>&1 | tail -30
             exit 1
           fi
+
+          out=$(SHELLMATE_HOME=$PWD sh statusline/shellmate-sprite.sh 2>/dev/null)
+          if [ -z "$out" ]; then
+            echo "sprite produced no output despite cached frames"
+            ls -laR "$cache" 2>&1 || true
+            exit 1
+          fi
+          printf '%s\n' "$out"
+
+          # A per-session cache must be written too — the status line always
+          # passes SHELLMATE_SESSION_ID, so the aggregate path alone is not
+          # evidence that real usage works.
+          rm -rf "$cache"
+          SHELLMATE_HOME=$PWD SHELLMATE_SESSION_ID=ci-session sh statusline/shellmate-sprite.sh >/dev/null 2>&1 || true
+          sleep 5
+          if [ -z "$(find "$cache" -path '*ci-session*' -name 'frame*' -print -quit)" ]; then
+            echo "per-session cold path wrote no frames"
+            ls -laR "$cache" 2>&1 || true
+            exit 1
+          fi
+          out=$(SHELLMATE_HOME=$PWD SHELLMATE_SESSION_ID=ci-session sh statusline/shellmate-sprite.sh 2>/dev/null)
+          test -n "$out" || { echo "per-session render produced no output"; exit 1; }
           printf '%s\n' "$out"
 
       - name: CLI entry points
