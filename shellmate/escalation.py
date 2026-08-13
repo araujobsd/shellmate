@@ -9,6 +9,7 @@ from shellmate.models import Agent, AgentView, Alert, EscalationState, Snapshot
 
 NOTIFY_TIERS = ("HIGH", "CRIT")
 COOLDOWN_SECONDS = 60.0
+PHRASE_MIN_SECONDS = 90.0
 
 _TIER_RANK = {"CRIT": 0, "HIGH": 1, "MED": 2, "FRESH": 3}
 
@@ -130,6 +131,7 @@ def advance(
     last_status = {k: v for k, v in state.last_status.items() if k in live}
     last_alert_at = state.last_alert_at
     mood_since = state.mood_since  # Track when current mood began
+    phrase_seed = state.phrase_seed  # Track when phrase selection seed was set
 
     views = []
     alerts: list[Alert] = []
@@ -166,6 +168,25 @@ def advance(
     if new_mood != state.last_mood:
         mood_since = now
 
+    # Update phrase_seed according to mood transitions (for stable phrase selection)
+    # SIGNAL_MOODS are alert, alarmed, offline (the escalation-indicating moods)
+    SIGNAL_MOODS = {"alert", "alarmed", "offline"}
+    old_mood = state.last_mood
+
+    if phrase_seed == 0.0 and old_mood == "sleeping":
+        # First time: initialize phrase_seed (only on very first advance when last_mood is still sleeping)
+        phrase_seed = now
+    elif new_mood in SIGNAL_MOODS and old_mood not in SIGNAL_MOODS:
+        # Entering SIGNAL from non-SIGNAL: escalation is news, re-seed immediately
+        phrase_seed = now
+    elif new_mood in SIGNAL_MOODS and old_mood in SIGNAL_MOODS and new_mood != old_mood:
+        # Transitioning between different SIGNAL moods: signal change is also news, re-seed immediately
+        phrase_seed = now
+    elif now - phrase_seed >= PHRASE_MIN_SECONDS:
+        # Minimum lifetime elapsed: allow re-seed
+        phrase_seed = now
+    # else: leave phrase_seed unchanged (no re-seed)
+
     snapshot = Snapshot(views=tuple(views), mood=new_mood, online=online)
     return (
         snapshot,
@@ -178,6 +199,7 @@ def advance(
             pet_count=state.pet_count,
             last_mood=new_mood,
             mood_since=mood_since,
+            phrase_seed=phrase_seed,
         ),
         alerts,
     )

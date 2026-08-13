@@ -238,6 +238,7 @@ def load(path: Path) -> EscalationState:
         last_st = raw.get("last_status")
         petted = raw.get("petted_at")
         pet_cnt = raw.get("pet_count")
+        phrase_seed = raw.get("phrase_seed")
 
         # Validate waiting_since: only keep str keys with float/int values (excluding bool)
         waiting_since_validated = {}
@@ -279,6 +280,13 @@ def load(path: Path) -> EscalationState:
         if isinstance(pet_cnt, int) and not isinstance(pet_cnt, bool):
             pet_count_validated = max(0, pet_cnt)
 
+        # Validate phrase_seed: must be a number (float/int, not bool), default 0.0
+        phrase_seed_validated = 0.0
+        is_valid_phrase_seed = isinstance(phrase_seed, (int, float)) and not isinstance(phrase_seed, bool)
+        if is_valid_phrase_seed:
+            with contextlib.suppress(ValueError, TypeError):
+                phrase_seed_validated = float(phrase_seed)
+
         return EscalationState(
             waiting_since=waiting_since_validated,
             notified=notified_validated,
@@ -286,6 +294,7 @@ def load(path: Path) -> EscalationState:
             last_status=last_status_validated,
             petted_at=petted_at_validated,
             pet_count=pet_count_validated,
+            phrase_seed=phrase_seed_validated,
         )
     except Exception:
         return EscalationState()
@@ -305,6 +314,7 @@ def save(path: Path, state: EscalationState) -> None:
         "last_status": state.last_status,
         "petted_at": state.petted_at,
         "pet_count": state.pet_count,
+        "phrase_seed": state.phrase_seed,
     }
     tmp = path.with_suffix(".tmp")
     try:

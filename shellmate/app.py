@@ -92,7 +92,7 @@ class App:
             identity=self.identity,
             now=now,
             config=self.cfg,
-            mood_since=self.state.mood_since,
+            mood_since=self.state.phrase_seed,
         )
         self._frame += 1
         return lines

@@ -159,7 +159,7 @@ for i in range(2):
 
             phrase_display = ""
             if cfg.show_phrase:
-                phrase_text = phrase_for(effective_character, mood, st.mood_since)
+                phrase_text = phrase_for(effective_character, mood, st.phrase_seed)
                 if phrase_text:
                     phrase_display = f"  {COLORS['dim']}\"{phrase_text}\"{reset}"
 
