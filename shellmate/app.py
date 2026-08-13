@@ -67,10 +67,13 @@ class App:
         self._running = True
 
     def tick(self, now: float, cols: int) -> list[str]:
+        identity_species = self.identity.species if self.identity else None
+        effective_character = get_effective_character(self.cfg, identity_species)
+
         if self._last_poll is None or now - self._last_poll >= self.cfg.poll_seconds:
             agents, online = session.sample()
             self.snapshot, self.state, alerts = escalation.advance(
-                agents, self.state, now, self.cfg, online
+                agents, self.state, now, self.cfg, online, character=effective_character
             )
             self._last_poll = now
             if self.cfg.notify and self.notifier is not None:
@@ -78,9 +81,6 @@ class App:
                     if not self.notifier.enabled:
                         break
                     self.notifier.send(alert)
-
-        identity_species = self.identity.species if self.identity else None
-        effective_character = get_effective_character(self.cfg, identity_species)
 
         lines = render.frame(
             self.snapshot,
@@ -92,7 +92,7 @@ class App:
             identity=self.identity,
             now=now,
             config=self.cfg,
-            mood_since=self.state.phrase_seed,
+            phrase_text=self.state.phrase_text,
         )
         self._frame += 1
         return lines
@@ -132,11 +132,14 @@ def show_face() -> int:
         agents, online = session.sample()
         state = store.load(store.default_path())
         identity = store.load_identity(store.identity_path())
-        snapshot, new_state, _alerts = escalation.advance(agents, state, time.time(), cfg, online)
-        store.save(store.default_path(), new_state)
 
         identity_species = identity.species if identity else None
         effective_character = get_effective_character(cfg, identity_species)
+
+        snapshot, new_state, _alerts = escalation.advance(
+            agents, state, time.time(), cfg, online, character=effective_character
+        )
+        store.save(store.default_path(), new_state)
 
         face = characters.compact_for(effective_character, snapshot.mood)
         colors_enabled = color_enabled()
@@ -187,12 +190,14 @@ def show_sprite() -> int:
             )
             store.save_identity(store.identity_path(), identity)
 
-        snapshot, new_state, _alerts = escalation.advance(agents, state, now, cfg, online)
-        store.save(store.default_path(), new_state)
-
         # Determine which character to use: config > identity.species > default
         identity_species = identity.species if identity else None
         effective_character = get_effective_character(cfg, identity_species)
+
+        snapshot, new_state, _alerts = escalation.advance(
+            agents, state, now, cfg, online, character=effective_character
+        )
+        store.save(store.default_path(), new_state)
 
         # Get the sprite directly without box wrapper
         from shellmate.characters import EGG, frames_for, hatch_stage, idle_frame
@@ -307,14 +312,15 @@ def show_phrase() -> int:
             )
             store.save_identity(store.identity_path(), identity)
 
-        snapshot, new_state, _alerts = escalation.advance(agents, state, now, cfg, online)
-        store.save(store.default_path(), new_state)
-
         identity_species = identity.species if identity else None
         effective_character = get_effective_character(cfg, identity_species)
 
-        phrase = characters.phrase_for(effective_character, snapshot.mood, new_state.mood_since)
-        sys.stdout.write(f"{phrase}\n")
+        snapshot, new_state, _alerts = escalation.advance(
+            agents, state, now, cfg, online, character=effective_character
+        )
+        store.save(store.default_path(), new_state)
+
+        sys.stdout.write(f"{new_state.phrase_text}\n")
         sys.stdout.flush()
         return 0
     except Exception:

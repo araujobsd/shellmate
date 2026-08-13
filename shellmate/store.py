@@ -238,7 +238,8 @@ def load(path: Path) -> EscalationState:
         last_st = raw.get("last_status")
         petted = raw.get("petted_at")
         pet_cnt = raw.get("pet_count")
-        phrase_seed = raw.get("phrase_seed")
+        phrase_text = raw.get("phrase_text")
+        phrase_set_at = raw.get("phrase_set_at")
 
         # Validate waiting_since: only keep str keys with float/int values (excluding bool)
         waiting_since_validated = {}
@@ -280,12 +281,19 @@ def load(path: Path) -> EscalationState:
         if isinstance(pet_cnt, int) and not isinstance(pet_cnt, bool):
             pet_count_validated = max(0, pet_cnt)
 
-        # Validate phrase_seed: must be a number (float/int, not bool), default 0.0
-        phrase_seed_validated = 0.0
-        is_valid_phrase_seed = isinstance(phrase_seed, (int, float)) and not isinstance(phrase_seed, bool)
-        if is_valid_phrase_seed:
+        # Validate phrase_text: must be a string, default ""
+        phrase_text_validated = ""
+        if isinstance(phrase_text, str):
+            phrase_text_validated = phrase_text
+
+        # Validate phrase_set_at: must be a number (float/int, not bool), default 0.0
+        phrase_set_at_validated = 0.0
+        is_valid_phrase_set_at = isinstance(phrase_set_at, (int, float)) and not isinstance(
+            phrase_set_at, bool
+        )
+        if is_valid_phrase_set_at:
             with contextlib.suppress(ValueError, TypeError):
-                phrase_seed_validated = float(phrase_seed)
+                phrase_set_at_validated = float(phrase_set_at)
 
         return EscalationState(
             waiting_since=waiting_since_validated,
@@ -294,7 +302,8 @@ def load(path: Path) -> EscalationState:
             last_status=last_status_validated,
             petted_at=petted_at_validated,
             pet_count=pet_count_validated,
-            phrase_seed=phrase_seed_validated,
+            phrase_text=phrase_text_validated,
+            phrase_set_at=phrase_set_at_validated,
         )
     except Exception:
         return EscalationState()
@@ -314,7 +323,8 @@ def save(path: Path, state: EscalationState) -> None:
         "last_status": state.last_status,
         "petted_at": state.petted_at,
         "pet_count": state.pet_count,
-        "phrase_seed": state.phrase_seed,
+        "phrase_text": state.phrase_text,
+        "phrase_set_at": state.phrase_set_at,
     }
     tmp = path.with_suffix(".tmp")
     try:

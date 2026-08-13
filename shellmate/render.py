@@ -4,7 +4,7 @@ Every returned line is exactly `cols` display columns wide. That invariant is
 what keeps the box intact when a tab label contains CJK text or an emoji.
 """
 
-from shellmate.characters import EGG, frames_for, hatch_stage, idle_frame, phrase_for
+from shellmate.characters import EGG, frames_for, hatch_stage, idle_frame
 from shellmate.config import Config
 from shellmate.identity import Identity
 from shellmate.models import AgentView, Snapshot, fmt_age
@@ -50,7 +50,7 @@ def frame(
     identity: Identity | None = None,
     now: float | None = None,
     config: Config | None = None,  # for phrase rendering
-    mood_since: float = 0.0,  # timestamp when current mood began
+    phrase_text: str = "",  # the rendered phrase to display
 ) -> list[str]:
     # Handle cols < 3: can't fit a box, return simple lines exactly `cols` wide
     if cols < 3:
@@ -95,11 +95,10 @@ def frame(
     head = box["h"] + title
     lines = [box["tl"] + head + box["h"] * (inner - width(head)) + box["tr"]]
 
-    # Get phrase if enabled and we have the needed context
+    # Get phrase if enabled and phrase_text is provided
     phrase = ""
-    if config and config.show_phrase and snapshot.mood and mood_since:
-        effective_char = character or identity.species if identity else ""
-        phrase = phrase_for(effective_char, snapshot.mood, mood_since)
+    if config and config.show_phrase and snapshot.mood and phrase_text:
+        phrase = phrase_text
 
     # Render sprite lines, adding phrase to the 3rd line if applicable
     for line_no, row in enumerate(sprite):

@@ -328,7 +328,8 @@ def test_state_does_not_include_identity_field(tmp_path):
         "last_status": {},
         "petted_at": None,
         "pet_count": 0,
-        "phrase_seed": 0.0,
+        "phrase_text": "",
+        "phrase_set_at": 0.0,
     }
 
 

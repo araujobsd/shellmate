@@ -4,6 +4,7 @@
 makes every tier transition testable without sleeping.
 """
 
+from shellmate.characters import phrase_for
 from shellmate.config import Config
 from shellmate.models import Agent, AgentView, Alert, EscalationState, Snapshot
 
@@ -120,6 +121,7 @@ def advance(
     now: float,
     cfg: Config,
     online: bool,
+    character: str = "",
 ) -> tuple[Snapshot, EscalationState, list[Alert]]:
     """Fold a poll result into the escalation state.
 
@@ -131,7 +133,8 @@ def advance(
     last_status = {k: v for k, v in state.last_status.items() if k in live}
     last_alert_at = state.last_alert_at
     mood_since = state.mood_since  # Track when current mood began
-    phrase_seed = state.phrase_seed  # Track when phrase selection seed was set
+    phrase_text = state.phrase_text  # the rendered phrase to display
+    phrase_set_at = state.phrase_set_at  # when phrase_text was chosen
 
     views = []
     alerts: list[Alert] = []
@@ -168,24 +171,26 @@ def advance(
     if new_mood != state.last_mood:
         mood_since = now
 
-    # Update phrase_seed according to mood transitions (for stable phrase selection)
+    # Determine when to pick a NEW phrase (keep existing text otherwise)
     # SIGNAL_MOODS are alert, alarmed, offline (the escalation-indicating moods)
     SIGNAL_MOODS = {"alert", "alarmed", "offline"}
     old_mood = state.last_mood
+    pick_new_phrase = False
 
-    if phrase_seed == 0.0 and old_mood == "sleeping":
-        # First time: initialize phrase_seed (only on very first advance when last_mood is still sleeping)
-        phrase_seed = now
+    if phrase_text == "":
+        # First run: pick a new phrase
+        pick_new_phrase = True
     elif new_mood in SIGNAL_MOODS and old_mood not in SIGNAL_MOODS:
-        # Entering SIGNAL from non-SIGNAL: escalation is news, re-seed immediately
-        phrase_seed = now
-    elif new_mood in SIGNAL_MOODS and old_mood in SIGNAL_MOODS and new_mood != old_mood:
-        # Transitioning between different SIGNAL moods: signal change is also news, re-seed immediately
-        phrase_seed = now
-    elif now - phrase_seed >= PHRASE_MIN_SECONDS:
-        # Minimum lifetime elapsed: allow re-seed
-        phrase_seed = now
-    # else: leave phrase_seed unchanged (no re-seed)
+        # Escalation: entering SIGNAL from non-SIGNAL, pick new phrase immediately
+        pick_new_phrase = True
+    elif now - phrase_set_at >= PHRASE_MIN_SECONDS:
+        # Minimum lifetime elapsed: allow picking new phrase
+        pick_new_phrase = True
+
+    if pick_new_phrase:
+        phrase_text = phrase_for(character, new_mood, now)
+        phrase_set_at = now
+    # else: keep existing phrase_text unchanged
 
     snapshot = Snapshot(views=tuple(views), mood=new_mood, online=online)
     return (
@@ -199,7 +204,8 @@ def advance(
             pet_count=state.pet_count,
             last_mood=new_mood,
             mood_since=mood_since,
-            phrase_seed=phrase_seed,
+            phrase_text=phrase_text,
+            phrase_set_at=phrase_set_at,
         ),
         alerts,
     )

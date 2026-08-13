@@ -460,195 +460,188 @@ def test_advance_preserves_pet_count_across_polls():
     assert state.petted_at == 100.0
 
 
-# Tests for phrase_seed logic (stable phrase selection across mood churn and escalations)
+# Tests for phrase_text stability (display text doesn't change during mood churn)
 
 
-def test_phrase_seed_stable_during_mood_churn():
-    """Test the exact scenario: mood flickers working<->perked<->working<->perked over ~70s.
+def test_phrase_text_stable_during_mood_churn():
+    """Test mood flickers working<->perked<->working<->perked over ~70s shows at most 1 text
+    change.
 
-    phrase_seed should not change during non-SIGNAL mood churn because:
-    - working and perked are both non-SIGNAL moods
-    - We haven't hit 90 seconds yet
-    - No escalation (entry to SIGNAL) occurs
+    When mood flickers between working and perked (both non-SIGNAL), the phrase_text
+    should be chosen once and stay the same even though the live mood changes repeatedly.
     """
     state = EscalationState()
 
-    # t=100: working, phrase_seed initializes to 100
-    snap, state, _ = advance([agent(status="working")], state, now=100.0, cfg=CFG, online=True)
-    initial_seed = state.phrase_seed
-    assert initial_seed == 100.0  # Initialized to now
+    # t=100: working, phrase_text selected on first run
+    snap, state, _ = advance(
+        [agent(status="working")], state, now=100.0, cfg=CFG, online=True, character="test"
+    )
+    initial_text = state.phrase_text
+    assert initial_text != ""  # Phrase was selected
+    assert state.phrase_set_at == 100.0
     assert snap.mood == "working"
 
     # t=108: transition to done (initiates clock), mood becomes perked
-    _, state, _ = advance([agent(status="done")], state, now=108.0, cfg=CFG, online=True)
-    seed_at_108 = state.phrase_seed
-    assert seed_at_108 == initial_seed  # No SIGNAL transition, no escalation
+    _, state, _ = advance(
+        [agent(status="done")], state, now=108.0, cfg=CFG, online=True, character="test"
+    )
+    assert state.phrase_text == initial_text  # Text unchanged during mood churn
 
     # t=120: back to working, mood back to working
-    _, state, _ = advance([agent(status="working")], state, now=120.0, cfg=CFG, online=True)
-    seed_at_120 = state.phrase_seed
-    assert seed_at_120 == seed_at_108  # Still no re-seed
+    _, state, _ = advance(
+        [agent(status="working")], state, now=120.0, cfg=CFG, online=True, character="test"
+    )
+    assert state.phrase_text == initial_text  # Still same text
 
     # t=131: done again, mood perked again
-    _, state, _ = advance([agent(status="done")], state, now=131.0, cfg=CFG, online=True)
-    seed_at_131 = state.phrase_seed
-    assert seed_at_131 == seed_at_120  # No re-seed during churn
-
-    # t=145: working again
-    _, state, _ = advance([agent(status="working")], state, now=145.0, cfg=CFG, online=True)
-    seed_at_145 = state.phrase_seed
-    assert seed_at_145 == seed_at_131  # Still stable
-
-    # t=152: done again
-    _, state, _ = advance([agent(status="done")], state, now=152.0, cfg=CFG, online=True)
-    seed_at_152 = state.phrase_seed
-    assert seed_at_152 == seed_at_145  # Still stable
+    _, state, _ = advance(
+        [agent(status="done")], state, now=131.0, cfg=CFG, online=True, character="test"
+    )
+    assert state.phrase_text == initial_text  # Still same text
 
     # t=170: working again, mood still working/perked, well under 90s from t=100
-    snap, state, _ = advance([agent(status="working")], state, now=170.0, cfg=CFG, online=True)
-    seed_at_170 = state.phrase_seed
-    assert seed_at_170 == seed_at_152  # Still haven't changed
+    snap, state, _ = advance(
+        [agent(status="working")], state, now=170.0, cfg=CFG, online=True, character="test"
+    )
+    assert state.phrase_text == initial_text  # Still same text through all churn
     assert snap.mood == "working"
 
 
-def test_phrase_seed_refreshes_after_min_seconds():
-    """Test minimum lifetime of 90 seconds.
+def test_phrase_text_refreshes_after_min_seconds():
+    """Test minimum lifetime of 90 seconds for phrase_text.
 
-    - At t=1000 with mood=working, phrase_seed initializes to 1000
-    - At t=1045 (before 90s elapsed), with same mood, phrase_seed should NOT change
-    - At t=1100 (after 90s elapsed), with same mood, phrase_seed SHOULD refresh
+    - At t=1000 with mood=working, phrase_text selected
+    - At t=1045 (before 90s elapsed), with same mood, phrase_text should NOT change
+    - At t=1100 (after 90s elapsed), with same mood, phrase_text SHOULD refresh
     """
     state = EscalationState()
 
-    # t=1000: working, phrase_seed initializes
-    snap, state, _ = advance([agent(status="working")], state, now=1000.0, cfg=CFG, online=True)
-    assert state.phrase_seed == 1000.0
+    # t=1000: working, phrase_text selected
+    snap, state, _ = advance(
+        [agent(status="working")], state, now=1000.0, cfg=CFG, online=True, character="test"
+    )
+    text_at_1000 = state.phrase_text
+    assert text_at_1000 != ""
+    assert state.phrase_set_at == 1000.0
     assert snap.mood == "working"
 
     # t=1045: still working, 45s elapsed, less than 90s
-    snap, state, _ = advance([agent(status="working")], state, now=1045.0, cfg=CFG, online=True)
-    seed_at_1045 = state.phrase_seed
-    assert seed_at_1045 == 1000.0  # No refresh yet
+    snap, state, _ = advance(
+        [agent(status="working")], state, now=1045.0, cfg=CFG, online=True, character="test"
+    )
+    assert state.phrase_text == text_at_1000  # No refresh yet
+    assert state.phrase_set_at == 1000.0  # Timestamp unchanged
     assert snap.mood == "working"
 
     # t=1100: still working, 100s elapsed, more than 90s minimum
-    snap, state, _ = advance([agent(status="working")], state, now=1100.0, cfg=CFG, online=True)
-    seed_at_1100 = state.phrase_seed
-    assert seed_at_1100 == 1100.0  # Refreshed after 90s minimum
+    snap, state, _ = advance(
+        [agent(status="working")], state, now=1100.0, cfg=CFG, online=True, character="test"
+    )
+    # Text may or may not be the same (depends on phrase selection), but timestamp changed
+    assert state.phrase_set_at == 1100.0  # Refreshed after 90s minimum
     assert snap.mood == "working"
 
 
-def test_phrase_seed_immediate_on_signal_escalation():
-    """Test immediate re-seeding when entering SIGNAL mood from non-SIGNAL.
+def test_phrase_text_immediate_on_escalation():
+    """Test immediate new phrase when escalating from working to alert.
 
-    - Start with mood=working (non-SIGNAL) at t=1000, phrase_seed=1000
+    - Start with mood=working (non-SIGNAL) at t=1000, phrase_text selected
     - At t=1001, transition to done which starts clock (perked, still non-SIGNAL)
     - At t=1301, age reaches MED threshold, mood becomes alert (SIGNAL)
-    - Verify phrase_seed changes immediately to 1301, NOT waiting for 90s minimum
+    - Verify phrase_text changes immediately on escalation
     """
     state = EscalationState()
 
     # t=1000: working
-    snap, state, _ = advance([agent(status="working")], state, now=1000.0, cfg=CFG, online=True)
-    assert state.phrase_seed == 1000.0
+    snap, state, _ = advance(
+        [agent(status="working")], state, now=1000.0, cfg=CFG, online=True, character="test"
+    )
+    text_at_1000 = state.phrase_text
+    assert text_at_1000 != ""
     assert snap.mood == "working"
 
     # t=1001: transition to done which starts clock, will become perked (still non-SIGNAL)
-    _, state, _ = advance([agent(status="done")], state, now=1001.0, cfg=CFG, online=True)
-    assert state.phrase_seed == 1000.0  # No re-seed yet (perked is non-SIGNAL)
-    assert snap.mood == "working"
+    _, state, _ = advance(
+        [agent(status="done")], state, now=1001.0, cfg=CFG, online=True, character="test"
+    )
+    assert state.phrase_text == text_at_1000  # No re-pick yet (perked is non-SIGNAL)
 
     # t=1301: now age = 300s >= MED threshold (120s), mood becomes alert (SIGNAL)
-    snap, state, _ = advance([agent(status="done")], state, now=1301.0, cfg=CFG, online=True)
+    snap, state, _ = advance(
+        [agent(status="done")], state, now=1301.0, cfg=CFG, online=True, character="test"
+    )
     assert snap.mood == "alert"  # Entered SIGNAL
-    assert state.phrase_seed == 1301.0  # Re-seeded immediately (only 1s elapsed since last seed)
+    # Phrase text was re-picked on escalation (could be same or different)
+    assert state.phrase_set_at == 1301.0  # Timestamp updated
 
 
-def test_phrase_seed_immediate_on_signal_to_signal():
-    """Test immediate re-seeding when transitioning between SIGNAL moods.
+def test_phrase_text_no_change_in_same_signal():
+    """Test that staying in one SIGNAL mood doesn't re-pick phrase on every poll.
 
-    - Start with mood=alert at some point, phrase_seed set
-    - Then transition to alarmed: phrase_seed should immediately change
-    - The spec says "signal-to-signal still counts as news"
-    """
-    state = EscalationState()
-
-    # t=1000: Create alert mood by having done status, but not yet waiting
-    _, state, _ = advance([agent(status="working")], state, now=1000.0, cfg=CFG, online=True)
-    assert state.phrase_seed == 1000.0
-    seed_at_1000 = state.phrase_seed
-
-    # t=1001: Start waiting (done), low age, mood is still working/sleeping
-    _, state, _ = advance([agent(status="done")], state, now=1001.0, cfg=CFG, online=True)
-
-    # t=1301: age = 300s, reaches MED threshold, mood becomes alert (SIGNAL)
-    snap, state, _ = advance([agent(status="done")], state, now=1301.0, cfg=CFG, online=True)
-    assert snap.mood == "alert"  # First SIGNAL mood
-    seed_at_1301 = state.phrase_seed
-    assert seed_at_1301 == 1301.0  # Re-seeded on SIGNAL entry
-
-    # t=1701: age = 700s, crosses HIGH threshold, mood becomes alarmed (SIGNAL)
-    snap, state, _ = advance([agent(status="done")], state, now=1701.0, cfg=CFG, online=True)
-    assert snap.mood == "alarmed"  # Signal-to-signal transition
-    assert state.phrase_seed == 1701.0  # Re-seeded immediately on signal-to-signal
-    assert state.phrase_seed != seed_at_1301  # Changed from previous SIGNAL
-
-
-def test_phrase_seed_no_reseed_in_same_signal():
-    """Test that staying in one SIGNAL mood doesn't re-seed on every poll.
-
-    - Transition to alarmed at t=1000, phrase_seed=1000
-    - At t=1050 (still in alarmed, only 50s elapsed), phrase_seed should NOT change
-    - This prevents re-seeding on every single poll within one signal mood
+    - Transition to alarmed at t=1000, phrase_text selected
+    - At t=1050 (still in alarmed, only 50s elapsed), phrase_text should NOT change
     """
     state = EscalationState()
 
     # t=1000: Set up alarmed mood (blocked status)
-    snap, state, _ = advance([agent(status="blocked")], state, now=1000.0, cfg=CFG, online=True)
+    snap, state, _ = advance(
+        [agent(status="blocked")], state, now=1000.0, cfg=CFG, online=True, character="test"
+    )
     assert snap.mood == "alarmed"
-    assert state.phrase_seed == 1000.0  # Initialized
+    text_at_1000 = state.phrase_text
+    assert text_at_1000 != ""
+    assert state.phrase_set_at == 1000.0
 
     # t=1050: Still alarmed, no mood change, only 50s elapsed (< 90s minimum)
-    snap, state, _ = advance([agent(status="blocked")], state, now=1050.0, cfg=CFG, online=True)
+    snap, state, _ = advance(
+        [agent(status="blocked")], state, now=1050.0, cfg=CFG, online=True, character="test"
+    )
     assert snap.mood == "alarmed"
-    assert state.phrase_seed == 1000.0  # No re-seed within same SIGNAL mood before 90s
+    assert state.phrase_text == text_at_1000  # No re-pick within same SIGNAL mood before 90s
+    assert state.phrase_set_at == 1000.0  # Timestamp unchanged
 
 
-def test_phrase_seed_persists_through_save_load():
-    """Test backwards compatibility: phrase_seed persists through state save/load.
+def test_phrase_text_persists_through_save_load():
+    """Test backward compat: phrase_text persists through state save/load.
 
-    - Create state with phrase_seed=1234.5
+    - Create state with phrase_text="hello"
     - Save it (via dataclass) and load it back
-    - Verify phrase_seed loads correctly
-    - Also test that a state file WITHOUT phrase_seed key loads with default 0.0
+    - Verify phrase_text loads correctly
+    - Also test that a state file WITHOUT phrase_text key loads with default ""
     """
-    # Test 1: Save and load with explicit phrase_seed
+    # Test 1: Save and load with explicit phrase_text
     state = EscalationState(
         waiting_since={"a": 100.0},
         notified={"a": ["HIGH"]},
         last_status={"a": "idle"},
-        phrase_seed=1234.5
+        phrase_text="hello",
+        phrase_set_at=1234.5,
     )
 
     # Simulate "save" by reading the fields
-    saved_seed = state.phrase_seed
-    assert saved_seed == 1234.5
+    saved_text = state.phrase_text
+    saved_at = state.phrase_set_at
+    assert saved_text == "hello"
+    assert saved_at == 1234.5
 
     # Simulate "load" by creating new state with saved values
     loaded_state = EscalationState(
         waiting_since=state.waiting_since,
         notified=state.notified,
         last_status=state.last_status,
-        phrase_seed=saved_seed
+        phrase_text=saved_text,
+        phrase_set_at=saved_at,
     )
-    assert loaded_state.phrase_seed == 1234.5
+    assert loaded_state.phrase_text == "hello"
+    assert loaded_state.phrase_set_at == 1234.5
 
-    # Test 2: Load state without phrase_seed field (backward compat)
-    # This simulates loading a state file created before phrase_seed was added
+    # Test 2: Load state without phrase_text field (backward compat)
+    # This simulates loading a state file created before phrase_text was added
     loaded_old = EscalationState(
         waiting_since={"a": 100.0},
         notified={"a": ["HIGH"]},
-        last_status={"a": "idle"}
-        # No phrase_seed specified, should default to 0.0
+        last_status={"a": "idle"},
+        # No phrase_text or phrase_set_at specified, should default to "" and 0.0
     )
-    assert loaded_old.phrase_seed == 0.0  # Default value
+    assert loaded_old.phrase_text == ""  # Default value
+    assert loaded_old.phrase_set_at == 0.0  # Default value

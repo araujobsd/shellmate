@@ -54,4 +54,5 @@ class EscalationState:
     pet_count: int = 0  # total number of times petted
     last_mood: str = "sleeping"  # previous mood (to detect mood changes)
     mood_since: float = 0.0  # timestamp when current mood was entered (for stable phrases)
-    phrase_seed: float = 0.0  # timestamp when phrase selection seed was last reset (for stable phrases, separate from mood)
+    phrase_text: str = ""  # the rendered phrase to display
+    phrase_set_at: float = 0.0  # when phrase_text was chosen

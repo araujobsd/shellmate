@@ -146,7 +146,7 @@ def test_phrase_is_rendered_when_enabled():
     """Phrase should appear in output when show_phrase=True."""
     s = snap(mood="happy")
     cfg = Config(show_phrase=True)
-    lines = frame(s, 0, 60, color=False, config=cfg, mood_since=1000.0)
+    lines = frame(s, 0, 60, color=False, config=cfg, phrase_text="test")
     # Join lines and look for quotes (phrase indicator)
     output = "\n".join(lines)
     assert '"' in output, "Phrase should be quoted when rendered"
@@ -156,7 +156,7 @@ def test_phrase_is_not_rendered_when_disabled():
     """Phrase should not appear when show_phrase=False."""
     s = snap(mood="happy")
     cfg = Config(show_phrase=False)
-    lines = frame(s, 0, 60, color=False, config=cfg, mood_since=1000.0)
+    lines = frame(s, 0, 60, color=False, config=cfg, phrase_text="test")
     output = "\n".join(lines)
     # Should not contain quotes (phrase markers)
     assert '"' not in output, "Phrase should not render when disabled"
@@ -167,7 +167,7 @@ def test_narrow_width_drops_phrase():
     s = snap(mood="alert")
     cfg = Config(show_phrase=True)
     # Very narrow width should not have phrase
-    narrow_lines = frame(s, 0, 20, color=False, config=cfg, mood_since=1000.0)
+    narrow_lines = frame(s, 0, 20, color=False, config=cfg, phrase_text="test")
     # Phrase should be dropped due to narrow width (only rendered if cols >= 50)
     # Just verify that the lines still render correctly and maintain width invariant
     for line in narrow_lines:
@@ -179,7 +179,7 @@ def test_phrase_width_invariant_maintained():
     s = snap(mood="working")
     cfg = Config(show_phrase=True)
     for cols in [30, 40, 60, 80]:
-        lines = frame(s, 0, cols, color=False, config=cfg, mood_since=1000.0)
+        lines = frame(s, 0, cols, color=False, config=cfg, phrase_text="test")
         for line in lines:
             w = width(line)
             assert w == cols, f"cols={cols}: line width is {w}, expected {cols}"
