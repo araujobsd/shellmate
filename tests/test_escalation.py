@@ -824,3 +824,41 @@ def test_update_phrase_shown_in_rendered_output():
     # at i=0, i=4, i=8 (when int(now) % 4 == 0), so 3 out of 12
     # But the exact count depends on seed distribution; just verify at least one appears
     assert update_phrases_shown > 0, "No update phrases shown despite available update"
+
+
+def test_phrase_holds_still_while_the_mood_is_unchanged(tmp_path):
+    """A buddy parked in one mood must keep its phrase for PHRASE_MIN_SECONDS.
+
+    This goes through the real save/load cycle on purpose. advance() re-picks the
+    phrase when the mood ENTERS a signal mood from a non-signal one, and it reads
+    the previous mood from persisted state. While last_mood was not written to
+    disk it reloaded as "sleeping" every time, so a buddy sitting in alert looked
+    like it was entering alert afresh on every call and re-rolled its phrase —
+    measured at roughly twice a second on a live install, which is what the whole
+    PHRASE_MIN_SECONDS mechanism exists to prevent.
+    """
+    from shellmate.store import load, save
+
+    path = tmp_path / "state.json"
+    state = EscalationState()
+
+    # Drive the buddy into alert: work, stop, then wait past med_seconds.
+    _snap, state, _ = advance((agent(status="working"),), state, 0.0, CFG, True)
+    _snap, state, _ = advance((agent(status="done"),), state, 10.0, CFG, True)
+    snap, state, _ = advance((agent(status="done"),), state, 200.0, CFG, True)
+    assert snap.mood == "alert", "precondition: buddy should be in alert"
+
+    save(path, state)
+    first_phrase = load(path).phrase_text
+    assert first_phrase, "precondition: a phrase should have been picked"
+
+    # Tick every 2s like the statusline's cold path, staying inside the 90s window.
+    for tick in range(1, 21):
+        now = 200.0 + tick * 2.0
+        state = load(path)
+        snap, state, _ = advance((agent(status="done"),), state, now, CFG, True)
+        save(path, state)
+        assert snap.mood == "alert", f"mood drifted at t={now}"
+        assert load(path).phrase_text == first_phrase, (
+            f"phrase changed at t={now} while the mood never left alert"
+        )

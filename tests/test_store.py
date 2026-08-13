@@ -330,7 +330,33 @@ def test_state_does_not_include_identity_field(tmp_path):
         "pet_count": 0,
         "phrase_text": "",
         "phrase_set_at": 0.0,
+        "last_mood": "sleeping",
+        "mood_since": 0.0,
     }
+
+
+def test_last_mood_and_mood_since_survive_the_round_trip(tmp_path):
+    """last_mood must persist, or phrase selection breaks in a way nothing raises.
+
+    advance() re-picks the phrase when the mood ENTERS a signal mood from a
+    non-signal one. last_mood was written nowhere, so it reloaded as "sleeping"
+    every time and a buddy parked in alert re-rolled its phrase on every call —
+    measured at twice a second against a live install.
+    """
+    state_path = tmp_path / "state.json"
+    save(state_path, EscalationState(last_mood="alert", mood_since=123.5))
+    restored = load(state_path)
+    assert restored.last_mood == "alert"
+    assert restored.mood_since == 123.5
+
+
+def test_unknown_last_mood_falls_back_to_sleeping(tmp_path):
+    """A junk mood must not propagate into the mood/phrase machinery."""
+    state_path = tmp_path / "state.json"
+    state_path.write_text(json.dumps({"last_mood": "not-a-mood", "mood_since": "nope"}))
+    restored = load(state_path)
+    assert restored.last_mood == "sleeping"
+    assert restored.mood_since == 0.0
 
 
 def test_concurrent_state_saves_preserve_identity(tmp_path, monkeypatch):

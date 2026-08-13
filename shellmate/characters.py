@@ -1,4 +1,4 @@
-"""Sprite data. No logic lives here — adding a buddy is appending a dict entry.
+r"""Sprite data. No logic lives here — adding a buddy is appending a dict entry.
 
 Contract, enforced by tests/test_characters.py:
   * every character defines all six moods

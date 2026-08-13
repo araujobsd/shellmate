@@ -9,6 +9,7 @@ import json
 import os
 from pathlib import Path
 
+from shellmate import characters
 from shellmate.identity import Identity
 from shellmate.models import EscalationState
 
@@ -240,6 +241,8 @@ def load(path: Path) -> EscalationState:
         pet_cnt = raw.get("pet_count")
         phrase_text = raw.get("phrase_text")
         phrase_set_at = raw.get("phrase_set_at")
+        last_mood_raw = raw.get("last_mood")
+        mood_since_raw = raw.get("mood_since")
 
         # Validate waiting_since: only keep str keys with float/int values (excluding bool)
         waiting_since_validated = {}
@@ -295,6 +298,25 @@ def load(path: Path) -> EscalationState:
             with contextlib.suppress(ValueError, TypeError):
                 phrase_set_at_validated = float(phrase_set_at)
 
+        # Validate last_mood: must be a known mood, default "sleeping".
+        # This one is load-bearing. escalation.advance() re-picks the phrase when
+        # the mood ENTERS a signal mood from a non-signal one, and it reads that
+        # "from" value here. While last_mood was not persisted it reloaded as
+        # "sleeping" on every call, so a buddy sitting in alert looked like it was
+        # entering alert afresh twice a second and the phrase never held still.
+        last_mood_validated = "sleeping"
+        if isinstance(last_mood_raw, str) and last_mood_raw in characters.MOODS:
+            last_mood_validated = last_mood_raw
+
+        # Validate mood_since: must be a number (float/int, not bool), default 0.0
+        mood_since_validated = 0.0
+        is_valid_mood_since = isinstance(mood_since_raw, (int, float)) and not isinstance(
+            mood_since_raw, bool
+        )
+        if is_valid_mood_since:
+            with contextlib.suppress(ValueError, TypeError):
+                mood_since_validated = float(mood_since_raw)
+
         return EscalationState(
             waiting_since=waiting_since_validated,
             notified=notified_validated,
@@ -304,6 +326,8 @@ def load(path: Path) -> EscalationState:
             pet_count=pet_count_validated,
             phrase_text=phrase_text_validated,
             phrase_set_at=phrase_set_at_validated,
+            last_mood=last_mood_validated,
+            mood_since=mood_since_validated,
         )
     except Exception:
         return EscalationState()
@@ -325,6 +349,8 @@ def save(path: Path, state: EscalationState) -> None:
         "pet_count": state.pet_count,
         "phrase_text": state.phrase_text,
         "phrase_set_at": state.phrase_set_at,
+        "last_mood": state.last_mood,
+        "mood_since": state.mood_since,
     }
     tmp = path.with_suffix(".tmp")
     try:
