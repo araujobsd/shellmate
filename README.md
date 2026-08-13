@@ -94,7 +94,7 @@ the count goes in `--whoami`. Petting never overrides `alert`, `alarmed` or
 ## Characters
 
 Eleven. Each has its own face, compact form, hatchling variant, idle behaviour,
-and about 35 phrases in its own voice.
+and about 30 phrases in its own voice — 338 in total across the roster.
 
 | | | |
 |---|---|---|
@@ -118,7 +118,7 @@ and about 35 phrases in its own voice.
 |---|---|---|
 | `character` | `""` | Empty uses your rolled species. Any name from the roster overrides it. |
 | `show_name` | `true` | Show the buddy's name beside the sprite. |
-| `show_phrase` | `true` | Show what it's saying. |
+| `show_phrase` | `true` | Show what it's saying. A phrase holds for at least 90 seconds so it doesn't flicker as the mood moves; escalation overrides that immediately. |
 | `notify` | `false` | Desktop notification when a session is ignored past `high_seconds`. Off by default — see below. |
 | `poll_seconds` | `2.0` | How often session state is sampled. |
 | `frame_seconds` | `0.6` | Animation frame interval. |

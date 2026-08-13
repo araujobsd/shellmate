@@ -1226,8 +1226,35 @@ def frames_for(character: str, mood: str, stage: str = "adult") -> list[list[str
     return sprites.get(mood) or sprites["sleeping"]
 
 
-def compact_for(character: str, mood: str) -> str:
-    """Look up compact face, falling back rather than raising."""
+# Compact egg, cracking in step with the 3-line EGG frames. The compact surface
+# had no egg concept at all, so a brand-new buddy skipped hatching entirely and
+# showed its species face from second one — the whole hatch was invisible there.
+EGG_COMPACT = ("(o)", "(c)", "(<)", "(*)")
+
+
+def egg_compact_for(frame_index: int) -> str:
+    """Compact egg face for a hatch frame. Clamps rather than raising."""
+    if not EGG_COMPACT:
+        return "(o)"
+    idx = max(0, min(int(frame_index), len(EGG_COMPACT) - 1))
+    return EGG_COMPACT[idx]
+
+
+def compact_for(
+    character: str,
+    mood: str,
+    born_at: float | None = None,
+    now: float | None = None,
+) -> str:
+    """Look up compact face, falling back rather than raising.
+
+    When born_at and now are supplied and the buddy has not hatched yet, returns
+    the compact egg for the current hatch frame instead of the species face.
+    """
+    if born_at is not None and now is not None:
+        egg_idx = hatch_stage(born_at, now)
+        if egg_idx is not None:
+            return egg_compact_for(egg_idx)
     faces = COMPACT.get(character) or COMPACT[DEFAULT_CHARACTER]
     return faces.get(mood) or faces["sleeping"]
 

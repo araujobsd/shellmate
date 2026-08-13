@@ -1,11 +1,16 @@
 """Tests for hatching and idle animation features."""
 
+import time
+
 from shellmate.characters import (
     EGG,
+    EGG_COMPACT,
     IDLE,
     NAMES,
     SPRITE_LINES,
     SPRITE_MAX_COLS,
+    compact_for,
+    egg_compact_for,
     hatch_stage,
     idle_frame,
 )
@@ -180,3 +185,49 @@ def test_idle_frame_works_for_all_characters():
         # Should either return None or a valid frame
         if result is not None:
             assert len(result) == SPRITE_LINES
+
+
+# --- compact surface must honour hatching -------------------------------------
+# Regression: compact_for() originally took only (character, mood), so the --face
+# surface skipped the egg entirely and a brand-new buddy showed its species face
+# from second one. A macOS user reported "it's already a small owl" on a fresh
+# install; the whole 8-hour hatch was invisible on that surface.
+
+
+def test_compact_egg_has_one_frame_per_egg_frame():
+    assert len(EGG_COMPACT) == len(EGG)
+
+
+def test_compact_egg_frames_are_within_budget_and_ascii():
+    for face in EGG_COMPACT:
+        assert width(face) <= 8
+        assert face.isascii()
+        assert face.strip()
+
+
+def test_compact_egg_frames_are_distinct():
+    assert len(set(EGG_COMPACT)) == len(EGG_COMPACT)
+
+
+def test_egg_compact_for_clamps_out_of_range():
+    assert egg_compact_for(-5) == EGG_COMPACT[0]
+    assert egg_compact_for(999) == EGG_COMPACT[-1]
+
+
+def test_compact_for_shows_egg_before_hatching():
+    now = time.time()
+    assert compact_for("owl", "working", born_at=now, now=now) in EGG_COMPACT
+    assert compact_for("owl", "working", born_at=now - 3600, now=now) in EGG_COMPACT
+
+
+def test_compact_for_shows_species_after_hatching():
+    now = time.time()
+    face = compact_for("owl", "working", born_at=now - 9 * 3600, now=now)
+    assert face not in EGG_COMPACT
+    assert face == "{o.o}"
+
+
+def test_compact_for_without_birth_info_is_unchanged():
+    # Callers that cannot supply birth info keep the old behaviour rather than
+    # guessing — never show an egg for a buddy whose age we do not know.
+    assert compact_for("owl", "working") == "{o.o}"

@@ -141,7 +141,12 @@ def show_face() -> int:
         )
         store.save(store.default_path(), new_state)
 
-        face = characters.compact_for(effective_character, snapshot.mood)
+        face = characters.compact_for(
+            effective_character,
+            snapshot.mood,
+            born_at=identity.born_at if identity else None,
+            now=time.time(),
+        )
         colors_enabled = color_enabled()
         mood_color_map = {
             "sleeping": theme.COLORS["dim"],
