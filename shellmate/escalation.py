@@ -11,6 +11,10 @@ from shellmate.models import Agent, AgentView, Alert, EscalationState, Snapshot
 NOTIFY_TIERS = ("HIGH", "CRIT")
 COOLDOWN_SECONDS = 60.0
 PHRASE_MIN_SECONDS = 90.0
+# How long a per-session phrase slot outlives its session. Long enough that a
+# quiet pane keeps its phrase across the gap where its session file has gone
+# stale but the pane is still on screen; short enough that closed panes age out.
+PHRASE_SLOT_TTL = 3600.0
 
 _TIER_RANK = {"CRIT": 0, "HIGH": 1, "MED": 2, "FRESH": 3}
 
@@ -192,15 +196,28 @@ def advance(
     # of the pane it is in — so pick the phrase for that mood, not the aggregate.
     display_mood = mood_for_session(snapshot, session_id) if session_id else new_mood
 
-    # Per-session phrase slots. Prune to sessions that still exist so the dicts do
-    # not grow forever, but never drop the pane being rendered right now: its
-    # session file can lag behind the render that reads it.
-    keep = live | {session_id} if session_id else live
-    phrase_by_session = {k: v for k, v in state.phrase_by_session.items() if k in keep}
-    phrase_set_at_by_session = {
-        k: v for k, v in state.phrase_set_at_by_session.items() if k in keep
-    }
-    last_mood_by_session = {k: v for k, v in state.last_mood_by_session.items() if k in keep}
+    # Per-session phrase slots, pruned so the dicts cannot grow forever.
+    #
+    # Liveness alone is the wrong test, and pruning on it was a real bug: session
+    # files go stale and are deleted after STALE_SECONDS, so a pane that has been
+    # quiet for a while drops out of `live` — which is exactly the pane showing
+    # `sleeping`. Any OTHER pane's render then deleted its slot, so on its next
+    # render its phrase was empty, it picked a fresh one, and the next pane wiped
+    # it again. The sleeping buddy changed what it was saying every two seconds.
+    #
+    # So a slot survives while its session is live, while it is the pane being
+    # rendered, or while it is simply recent. Age is what actually bounds growth:
+    # a closed pane stops being written and falls out an hour later.
+    cutoff = now - PHRASE_SLOT_TTL
+
+    def _keep(key: str) -> bool:
+        if key in live or key == session_id:
+            return True
+        return state.phrase_set_at_by_session.get(key, 0.0) >= cutoff
+
+    phrase_by_session = {k: v for k, v in state.phrase_by_session.items() if _keep(k)}
+    phrase_set_at_by_session = {k: v for k, v in state.phrase_set_at_by_session.items() if _keep(k)}
+    last_mood_by_session = {k: v for k, v in state.last_mood_by_session.items() if _keep(k)}
 
     if session_id:
         phrase_text = phrase_by_session.get(session_id, "")

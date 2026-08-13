@@ -909,8 +909,16 @@ def test_each_pane_gets_a_phrase_for_its_own_mood(tmp_path):
     assert final.last_mood_by_session == {"busy": "working", "idle": "alert"}
 
 
-def test_per_session_phrase_slots_are_pruned_with_their_sessions(tmp_path):
-    """Closed panes must not accumulate in state.json forever."""
+def test_a_slot_survives_its_session_disappearing(tmp_path):
+    """A slot must outlive its session file, not vanish with it.
+
+    This test originally asserted the opposite — that a slot is dropped as soon as
+    its session leaves the live set. That was wrong, and it was the bug: a pane
+    that goes quiet has its session file deleted as stale while the pane is still
+    on screen showing `sleeping`, so pruning on liveness threw away the phrase of
+    the very pane the user was looking at. Growth is bounded by age instead; see
+    test_phrase_slots_of_long_gone_panes_are_eventually_dropped.
+    """
     from shellmate.store import load, save
 
     path = tmp_path / "state.json"
@@ -921,11 +929,73 @@ def test_per_session_phrase_slots_are_pruned_with_their_sessions(tmp_path):
     save(path, state)
     assert "a" in load(path).phrase_by_session
 
-    # Session "a" is gone; only "b" is live now.
+    # Session "a" is gone from the live set; only "b" is sampled now.
     _s, state, _ = advance(
         (agent(key="b", status="working"),), load(path), 5.0, CFG, True, session_id="b"
     )
     save(path, state)
     remaining = load(path)
-    assert "a" not in remaining.phrase_by_session
+    assert "a" in remaining.phrase_by_session, "a still-visible pane lost its phrase"
     assert "b" in remaining.phrase_by_session
+
+
+def test_a_sleeping_pane_keeps_its_phrase_while_another_pane_renders(tmp_path):
+    """A quiet pane must not have its phrase wiped by a busy pane's render.
+
+    Session files go stale and are deleted after STALE_SECONDS, so a pane that has
+    been quiet drops out of the live set — and that is precisely the pane showing
+    `sleeping`. Pruning phrase slots by liveness alone meant any other pane's
+    render deleted the sleeping pane's slot; on its next render the slot was empty,
+    so it picked a new phrase, and the busy pane wiped it again two seconds later.
+    The sleeping buddy changed what it was saying about twice a second.
+    """
+    from shellmate.store import load, save
+
+    path = tmp_path / "state.json"
+    save(path, EscalationState())
+    quiet, busy_id = "pane-quiet", "pane-busy"
+    busy = agent(key=busy_id, status="working")
+
+    # The quiet pane is NOT among the sampled agents — its session file is gone.
+    _snap, state, _ = advance(
+        (busy,), load(path), 1000.0, CFG, True, character="cat", session_id=quiet
+    )
+    save(path, state)
+    first = load(path).phrase_by_session[quiet]
+    assert first
+
+    # Alternate renders well inside PHRASE_MIN_SECONDS.
+    for tick in range(1, 30):
+        now = 1000.0 + tick * 2.0
+        snap, state, _ = advance(
+            (busy,), load(path), now, CFG, True, character="cat", session_id=quiet
+        )
+        save(path, state)
+        assert mood_for_session(snap, quiet) == "sleeping"
+        _s, state, _ = advance(
+            (busy,), load(path), now + 0.5, CFG, True, character="cat", session_id=busy_id
+        )
+        save(path, state)
+        assert load(path).phrase_by_session.get(quiet) == first, (
+            f"the sleeping pane's phrase changed at t={now}"
+        )
+
+
+def test_phrase_slots_of_long_gone_panes_are_eventually_dropped(tmp_path):
+    """Keeping slots by age must still bound growth."""
+    from shellmate.escalation import PHRASE_SLOT_TTL
+    from shellmate.store import load, save
+
+    path = tmp_path / "state.json"
+    save(path, EscalationState())
+    _s, state, _ = advance((), load(path), 1000.0, CFG, True, character="cat", session_id="old")
+    save(path, state)
+    assert "old" in load(path).phrase_by_session
+
+    # Far past the TTL, rendering for a different pane retires the stale slot.
+    later = 1000.0 + PHRASE_SLOT_TTL + 60.0
+    _s, state, _ = advance((), load(path), later, CFG, True, character="cat", session_id="new")
+    save(path, state)
+    remaining = load(path).phrase_by_session
+    assert "old" not in remaining
+    assert "new" in remaining
