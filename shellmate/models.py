@@ -54,6 +54,14 @@ class EscalationState:
     pet_count: int = 0  # total number of times petted
     last_mood: str = "sleeping"  # previous mood (to detect mood changes)
     mood_since: float = 0.0  # timestamp when current mood was entered (for stable phrases)
-    phrase_text: str = ""  # the rendered phrase to display
+    phrase_text: str = ""  # the rendered phrase to display (aggregate surfaces)
     phrase_set_at: float = 0.0  # when phrase_text was chosen
     latest_version: str | None = None  # newest version available, if known
+    # Per-session phrase state, keyed by session id. The face is drawn from the
+    # per-session mood, so the phrase has to follow that same mood — otherwise a
+    # quiet pane quotes whichever other pane is worst off. And since every pane
+    # shares this one file, a single set of slots meant each pane's cold path
+    # overwrote the others' a couple of times a second.
+    phrase_by_session: dict[str, str] = field(default_factory=dict)
+    phrase_set_at_by_session: dict[str, float] = field(default_factory=dict)
+    last_mood_by_session: dict[str, str] = field(default_factory=dict)

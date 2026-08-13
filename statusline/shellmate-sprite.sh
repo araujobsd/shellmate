@@ -91,6 +91,18 @@ from shellmate.update import check_for_update_cached
 
 cache = os.environ["CACHE_DIR"]
 session_id = os.environ.get("SHELLMATE_SESSION_ID", "")
+
+
+def session_phrase(state, sid):
+    """Read this pane's phrase, falling back to the shared slot.
+
+    Panes all share one state.json, so each has its own phrase slot; the shared
+    field belongs to the aggregate surfaces (--face, the full-screen app).
+    """
+    if sid:
+        return state.phrase_by_session.get(sid, "")
+    return state.phrase_text
+
 cfg = load_config()
 st = load(default_path())
 now_time = time.time()
@@ -114,7 +126,10 @@ latest_version = None
 if online:
     latest_version = check_for_update_cached(__version__, now_time, enabled=cfg.check_updates)
 
-snap, st, _ = advance(sessions, st, now_time, cfg, online, latest_version=latest_version)  # alerts discarded: display-only
+# session_id makes advance() pick the phrase for THIS pane's mood and keep it in
+# this pane's own slot. Without it the phrase came from the aggregate mood across
+# every pane, so a quiet pane quoted whichever other pane was worst off.
+snap, st, _ = advance(sessions, st, now_time, cfg, online, latest_version=latest_version, session_id=session_id)  # alerts discarded: display-only
 save(default_path(), st)
 
 # Determine which character to display
@@ -172,7 +187,7 @@ for i in range(2):
 
             phrase_display = ""
             if cfg.show_phrase:
-                phrase_text = st.phrase_text
+                phrase_text = session_phrase(st, session_id)
                 if phrase_text:
                     phrase_display = f"  {COLORS['dim']}\"{phrase_text}\"{reset}"
 
@@ -205,7 +220,7 @@ for i in range(2):
             # Append phrase if configured (offline phrase)
             phrase_display = ""
             if cfg.show_phrase:
-                phrase_text = st.phrase_text
+                phrase_text = session_phrase(st, session_id)
                 if phrase_text:
                     phrase_display = f"  {COLORS['dim']}\"{phrase_text}\"{offline_reset}"
 

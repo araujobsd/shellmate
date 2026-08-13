@@ -123,6 +123,7 @@ def advance(
     online: bool,
     character: str = "",
     latest_version: str | None = None,
+    session_id: str = "",
 ) -> tuple[Snapshot, EscalationState, list[Alert]]:
     """Fold a poll result into the escalation state.
 
@@ -136,6 +137,10 @@ def advance(
         online: whether the session is online
         character: buddy character name
         latest_version: newer version available (if any), for update notifications
+        session_id: pane this call is rendering for. When given, the phrase is
+            chosen for that session's mood and kept in that session's own slot.
+            When empty, the aggregate mood and the shared slot are used, which is
+            what the full-screen app and --face want.
     """
     live = {a.key for a in agents}
     waiting_since = {k: v for k, v in state.waiting_since.items() if k in live}
@@ -176,22 +181,43 @@ def advance(
 
     views.sort(key=_sort_key)
     new_mood = mood_for(tuple(views), online)
+    snapshot = Snapshot(views=tuple(views), mood=new_mood, online=online)
 
     # Track when the mood changed (for stable phrase selection)
     # If mood changed from last time, reset mood_since to now
     if new_mood != state.last_mood:
         mood_since = now
 
+    # The phrase describes what the buddy is showing, and the buddy shows the mood
+    # of the pane it is in — so pick the phrase for that mood, not the aggregate.
+    display_mood = mood_for_session(snapshot, session_id) if session_id else new_mood
+
+    # Per-session phrase slots. Prune to sessions that still exist so the dicts do
+    # not grow forever, but never drop the pane being rendered right now: its
+    # session file can lag behind the render that reads it.
+    keep = live | {session_id} if session_id else live
+    phrase_by_session = {k: v for k, v in state.phrase_by_session.items() if k in keep}
+    phrase_set_at_by_session = {
+        k: v for k, v in state.phrase_set_at_by_session.items() if k in keep
+    }
+    last_mood_by_session = {k: v for k, v in state.last_mood_by_session.items() if k in keep}
+
+    if session_id:
+        phrase_text = phrase_by_session.get(session_id, "")
+        phrase_set_at = phrase_set_at_by_session.get(session_id, 0.0)
+        old_mood = last_mood_by_session.get(session_id, "sleeping")
+    else:
+        old_mood = state.last_mood
+
     # Determine when to pick a NEW phrase (keep existing text otherwise)
     # SIGNAL_MOODS are alert, alarmed, offline (the escalation-indicating moods)
     SIGNAL_MOODS = {"alert", "alarmed", "offline"}
-    old_mood = state.last_mood
     pick_new_phrase = False
 
     if phrase_text == "":
         # First run: pick a new phrase
         pick_new_phrase = True
-    elif new_mood in SIGNAL_MOODS and old_mood not in SIGNAL_MOODS:
+    elif display_mood in SIGNAL_MOODS and old_mood not in SIGNAL_MOODS:
         # Escalation: entering SIGNAL from non-SIGNAL, pick new phrase immediately
         pick_new_phrase = True
     elif now - phrase_set_at >= PHRASE_MIN_SECONDS:
@@ -203,18 +229,26 @@ def advance(
         # Use the phrase seed to decide: if seed % 4 == 0, show update phrase
         # Only show update phrases for non-distress moods (never override alert/alarmed/offline)
         use_update_phrase = (
-            latest_version is not None and new_mood not in SIGNAL_MOODS and int(now) % 4 == 0
+            latest_version is not None and display_mood not in SIGNAL_MOODS and int(now) % 4 == 0
         )
 
         if use_update_phrase:
             phrase_text = update_phrase_for(character, now)
         else:
-            phrase_text = phrase_for(character, new_mood, now)
+            phrase_text = phrase_for(character, display_mood, now)
 
         phrase_set_at = now
     # else: keep existing phrase_text unchanged
 
-    snapshot = Snapshot(views=tuple(views), mood=new_mood, online=online)
+    if session_id:
+        phrase_by_session[session_id] = phrase_text
+        phrase_set_at_by_session[session_id] = phrase_set_at
+        last_mood_by_session[session_id] = display_mood
+        # Leave the shared slots alone: they belong to the aggregate surfaces, and
+        # writing them here is what let panes trample each other.
+        phrase_text = state.phrase_text
+        phrase_set_at = state.phrase_set_at
+
     return (
         snapshot,
         EscalationState(
@@ -229,6 +263,9 @@ def advance(
             phrase_text=phrase_text,
             phrase_set_at=phrase_set_at,
             latest_version=latest_version,
+            phrase_by_session=phrase_by_session,
+            phrase_set_at_by_session=phrase_set_at_by_session,
+            last_mood_by_session=last_mood_by_session,
         ),
         alerts,
     )

@@ -332,6 +332,9 @@ def test_state_does_not_include_identity_field(tmp_path):
         "phrase_set_at": 0.0,
         "last_mood": "sleeping",
         "mood_since": 0.0,
+        "phrase_by_session": {},
+        "phrase_set_at_by_session": {},
+        "last_mood_by_session": {},
     }
 
 

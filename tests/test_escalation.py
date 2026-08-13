@@ -862,3 +862,70 @@ def test_phrase_holds_still_while_the_mood_is_unchanged(tmp_path):
         assert load(path).phrase_text == first_phrase, (
             f"phrase changed at t={now} while the mood never left alert"
         )
+
+
+def test_each_pane_gets_a_phrase_for_its_own_mood(tmp_path):
+    """Two panes in different moods must each say something about their own mood.
+
+    The face is drawn from the per-session mood while the phrase used to come from
+    the aggregate mood across every pane, so a pane happily working would show a
+    working face beside an alert phrase borrowed from whichever other pane had
+    been idle longest.
+    """
+    from shellmate.characters import PHRASES
+    from shellmate.store import load, save
+
+    path = tmp_path / "state.json"
+    busy, idle = agent(key="busy", status="working"), agent(key="idle", status="working")
+    state = EscalationState()
+
+    # Both start working, then `idle` stops and waits past med_seconds.
+    _s, state, _ = advance((busy, idle), state, 0.0, CFG, True)
+    idle = agent(key="idle", status="done")
+    _s, state, _ = advance((busy, idle), state, 10.0, CFG, True)
+    save(path, state)
+
+    # Render each pane the way the statusline does: one call per session id.
+    snap, state, _ = advance(
+        (busy, idle), load(path), 300.0, CFG, True, character="cat", session_id="busy"
+    )
+    save(path, state)
+    snap2, state, _ = advance(
+        (busy, idle), load(path), 300.0, CFG, True, character="cat", session_id="idle"
+    )
+    save(path, state)
+
+    assert mood_for_session(snap, "busy") == "working"
+    assert mood_for_session(snap2, "idle") == "alert"
+
+    final = load(path)
+    busy_phrase = final.phrase_by_session["busy"]
+    idle_phrase = final.phrase_by_session["idle"]
+
+    # Each pane's phrase belongs to that pane's own mood...
+    assert busy_phrase in PHRASES["cat"]["working"], busy_phrase
+    assert idle_phrase in PHRASES["cat"]["alert"], idle_phrase
+    # ...and rendering the second pane did not clobber the first.
+    assert final.last_mood_by_session == {"busy": "working", "idle": "alert"}
+
+
+def test_per_session_phrase_slots_are_pruned_with_their_sessions(tmp_path):
+    """Closed panes must not accumulate in state.json forever."""
+    from shellmate.store import load, save
+
+    path = tmp_path / "state.json"
+    state = EscalationState()
+    _s, state, _ = advance(
+        (agent(key="a", status="working"),), state, 0.0, CFG, True, session_id="a"
+    )
+    save(path, state)
+    assert "a" in load(path).phrase_by_session
+
+    # Session "a" is gone; only "b" is live now.
+    _s, state, _ = advance(
+        (agent(key="b", status="working"),), load(path), 5.0, CFG, True, session_id="b"
+    )
+    save(path, state)
+    remaining = load(path)
+    assert "a" not in remaining.phrase_by_session
+    assert "b" in remaining.phrase_by_session

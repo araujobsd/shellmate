@@ -243,6 +243,9 @@ def load(path: Path) -> EscalationState:
         phrase_set_at = raw.get("phrase_set_at")
         last_mood_raw = raw.get("last_mood")
         mood_since_raw = raw.get("mood_since")
+        phrase_by_session_raw = raw.get("phrase_by_session")
+        phrase_set_at_by_session_raw = raw.get("phrase_set_at_by_session")
+        last_mood_by_session_raw = raw.get("last_mood_by_session")
 
         # Validate waiting_since: only keep str keys with float/int values (excluding bool)
         waiting_since_validated = {}
@@ -317,6 +320,29 @@ def load(path: Path) -> EscalationState:
             with contextlib.suppress(ValueError, TypeError):
                 mood_since_validated = float(mood_since_raw)
 
+        # Per-session phrase slots. Same validation shape as last_status: keep only
+        # str->str (or str->float) entries and drop anything malformed, so a junk
+        # file degrades to "no remembered phrase" rather than losing the whole state.
+        phrase_by_session_validated = {}
+        if isinstance(phrase_by_session_raw, dict):
+            for k, v in phrase_by_session_raw.items():
+                if isinstance(k, str) and isinstance(v, str):
+                    phrase_by_session_validated[k] = v
+
+        phrase_set_at_by_session_validated = {}
+        if isinstance(phrase_set_at_by_session_raw, dict):
+            for k, v in phrase_set_at_by_session_raw.items():
+                is_num = isinstance(v, (int, float)) and not isinstance(v, bool)
+                if isinstance(k, str) and is_num:
+                    with contextlib.suppress(ValueError, TypeError):
+                        phrase_set_at_by_session_validated[k] = float(v)
+
+        last_mood_by_session_validated = {}
+        if isinstance(last_mood_by_session_raw, dict):
+            for k, v in last_mood_by_session_raw.items():
+                if isinstance(k, str) and isinstance(v, str) and v in characters.MOODS:
+                    last_mood_by_session_validated[k] = v
+
         return EscalationState(
             waiting_since=waiting_since_validated,
             notified=notified_validated,
@@ -328,6 +354,9 @@ def load(path: Path) -> EscalationState:
             phrase_set_at=phrase_set_at_validated,
             last_mood=last_mood_validated,
             mood_since=mood_since_validated,
+            phrase_by_session=phrase_by_session_validated,
+            phrase_set_at_by_session=phrase_set_at_by_session_validated,
+            last_mood_by_session=last_mood_by_session_validated,
         )
     except Exception:
         return EscalationState()
@@ -351,6 +380,9 @@ def save(path: Path, state: EscalationState) -> None:
         "phrase_set_at": state.phrase_set_at,
         "last_mood": state.last_mood,
         "mood_since": state.mood_since,
+        "phrase_by_session": state.phrase_by_session,
+        "phrase_set_at_by_session": state.phrase_set_at_by_session,
+        "last_mood_by_session": state.last_mood_by_session,
     }
     tmp = path.with_suffix(".tmp")
     try:
