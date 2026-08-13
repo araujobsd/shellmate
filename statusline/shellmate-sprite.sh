@@ -167,7 +167,7 @@ for i in range(2):
 
             phrase_display = ""
             if cfg.show_phrase:
-                phrase_text = phrase_for(effective_character, mood, st.phrase_seed)
+                phrase_text = st.phrase_text
                 if phrase_text:
                     phrase_display = f"  {COLORS['dim']}\"{phrase_text}\"{reset}"
 
@@ -200,7 +200,7 @@ for i in range(2):
             # Append phrase if configured (offline phrase)
             phrase_display = ""
             if cfg.show_phrase:
-                phrase_text = phrase_for(effective_character, "offline", st.mood_since)
+                phrase_text = st.phrase_text
                 if phrase_text:
                     phrase_display = f"  {COLORS['dim']}\"{phrase_text}\"{offline_reset}"
 
