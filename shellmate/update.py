@@ -44,7 +44,12 @@ def check_for_update(current: str, fetch=None) -> str | None:
     if fetch is None:
 
         def fetch(url: str, timeout: int) -> dict:
-            req = urllib.request.Request(url, headers={"User-Agent": "shellmate/0.1.0"})
+            # Report the running version, not a literal. This said 0.1.0 for
+            # every release up to 1.0.0 because it was never wired to __version__.
+            from shellmate import __version__
+
+            agent = f"shellmate/{__version__}"
+            req = urllib.request.Request(url, headers={"User-Agent": agent})
             with urllib.request.urlopen(req, timeout=timeout) as resp:
                 return json.loads(resp.read().decode("utf-8"))
 
