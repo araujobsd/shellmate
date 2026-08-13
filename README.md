@@ -78,8 +78,11 @@ quiet conversation stays quiet even while another session is busy.
 | happy | you just petted it |
 | offline | shellmate can't see session state |
 
-`alert`, `alarmed` and `offline` look identical at every age and never animate
-idly — they carry a signal, so they stay legible.
+Every mood has art for every stage, so a hatchling stays hatchling-sized even
+when something needs you — urgency is carried by colour and the `!` / `!!` marks,
+not by size. `alert`, `alarmed` and `offline` never animate idly, and `offline`
+does not animate at all: a buddy that can't see session state shouldn't look
+alive.
 
 ## Petting
 

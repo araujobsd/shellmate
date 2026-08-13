@@ -24,11 +24,15 @@ distinct voice. Constraints, enforced by tests/test_characters.py:
 """
 
 MOODS = ("sleeping", "working", "happy", "perked", "alert", "alarmed", "offline")
-# Moods that have hatchling art. alert/alarmed/offline are deliberately absent:
-# they carry a signal, so they render full-size at every age to stay legible.
-# perked and happy are NOT signals — without baby art here a hatchling jumped to
-# full adult size at the end of every single turn, and again on every pet.
-BABY_MOODS = ("sleeping", "working", "perked", "happy")
+# Moods that have hatchling art — all of them. A hatchling stays a hatchling.
+#
+# alert/alarmed/offline used to be excluded so they would render full-size and
+# "stay legible", but for a solo session being idle past med_seconds is the
+# normal state, so the buddy was adult-sized most of the time and a hatchling
+# only while a prompt was running. The stage was nearly invisible and the size
+# flipped constantly. Urgency is carried by colour and the ! / !! marks, which
+# work at any size; size is a weak signal that mostly just made it jitter.
+BABY_MOODS = MOODS
 SPRITE_LINES = 3
 SPRITE_MAX_COLS = 12
 
@@ -467,6 +471,15 @@ BABY = {
             [r" /\/\ ", r"(>.<)*", r" >^<  "],
             [r" /\/\ ", r"(>w<)*", r" >^<  "],
         ],
+        "alert": [
+            [r" /\/\ ", r"(O.O)!", r" >^<  "],
+            [r" /\/\ ", r"(O.O)!!", r" >^<  "],
+        ],
+        "alarmed": [
+            [r" /\/\ !", r"(ಠ.ಠ)!!", r" >^<  "],
+            [r" /\/\!!", r"(ಠ.ಠ)!!", r" >v<  "],
+        ],
+        "offline": [[r" /\/\ ", r"(-.-)..", r" >^<  "]],
     },
     # The owl's feet are '-"-"-'. They were written as a raw string with escaped
     # quotes, r"-\"-\"-", which renders the backslashes literally — a raw string
@@ -489,6 +502,15 @@ BABY = {
             [r" ,_, ", r"(>,<) *", '-"-"-'],
             [r" ,_, ", r"(>w<) *", '-"-"-'],
         ],
+        "alert": [
+            [r" ,_, ", r"(O,O) !", '-"-"-'],
+            [r" ,_, ", r"(O,O) !!", '-"-"-'],
+        ],
+        "alarmed": [
+            [r" ,_, !", r"(ಠ,ಠ) !!", r"-^-^-"],
+            [r" ,_,!!", r"(ಠ,ಠ) !!", r"-v-v-"],
+        ],
+        "offline": [[r" ,_, ", r"(-,-) ..", '-"-"-']],
     },
     "blob": {
         "sleeping": [
@@ -508,6 +530,15 @@ BABY = {
             [r"  .-. ", r"(>.<)*", r"  `~' "],
             [r"  .-. ", r"(>w<)*", r"  `~' "],
         ],
+        "alert": [
+            [r"  .-. ", r"(O.O)!", r"  `-' "],
+            [r"  .-. ", r"(O.O)!!", r"  `-' "],
+        ],
+        "alarmed": [
+            [r"  .-. !", r"(ಠ.ಠ)!!", r"  `v' "],
+            [r"  .-.!!", r"(ಠ.ಠ)!!", r"  `^' "],
+        ],
+        "offline": [[r"  .-. ", r"(-.-)..", r"  `-' "]],
     },
     "dog": {
         "sleeping": [
@@ -526,24 +557,52 @@ BABY = {
             [r"/^-^\ ", r"(>.<)*", r"\_ W/"],
             [r"/^-^\ ", r"(>w<)*", r"\_ w/"],
         ],
+        "alert": [
+            [r"/^-^\ ", r"(O.O)!", r"\_ w/"],
+            [r"/^-^\ ", r"(O.O)!!", r"\_ v/"],
+        ],
+        "alarmed": [
+            [r"/^-^\ !", r"(ಠ.ಠ)!!", r"\_ W/"],
+            [r"/^-^\!!", r"(ಠ.ಠ)!!", r"\_ M/"],
+        ],
+        "offline": [[r"/^-^\ ", r"(-.-)..", r"\_ _/"]],
     },
     "penguin": {
         "sleeping": [[r"  ,.   ", r"<(-.-)>z", r"  ^^   "], [r"  ,.   ", r"<(-.-)>zz", r"  ^^   "]],
         "working": [[r"  ,.   ", r"<(o.o)>", r"  ^^   "], [r"  ,.   ", r"<(o.O)>", r"  ^^   "]],
         "perked": [[r"  ,.   ", r"<(o.o)>?", r"  ^^   "], [r"  ,.   ", r"<(O.o)>?", r"  ^^   "]],
         "happy": [[r"  ,.   ", r"<(^.^)>*", r"  ^^   "], [r"  ,.   ", r"<(>.<)>*", r"  ^^^  "]],
+        "alert": [[r"  ,.   ", r"<(O.O)>!", r"  ^^   "], [r"  ,.   ", r"<(O.O)>!!", r"  ^^   "]],
+        "alarmed": [
+            [r"  ,. ! ", r"<(ಠ.ಠ)>!!", r"  ^^^  "],
+            [r"  ,.!! ", r"<(ಠ.ಠ)>!!", r"  vvv  "],
+        ],
+        "offline": [[r"  ,.   ", r"<(x.x)>..", r"  ^^   "]],
     },
     "frog": {
         "sleeping": [[r" - -   ", r"( -.- )z", r"  \/   "], [r" - -   ", r"( -.- )zz", r"  \/   "]],
         "working": [[r" @ @   ", r"( o.o )", r"  \/   "], [r" @ @   ", r"( o.O )", r"  \/   "]],
         "perked": [[r" @ @   ", r"( o.o )?", r"  \/   "], [r" @ @   ", r"( O.o )?", r"  \/   "]],
         "happy": [[r" @ @   ", r"( ^.^ )*", r"  \/   "], [r" @ @   ", r"( >.< )*", r"  \o/  "]],
+        "alert": [[r" @ @   ", r"( O.O )!", r"  \/   "], [r" @ @   ", r"( O.O )!!", r"  \/   "]],
+        "alarmed": [
+            [r" @ @  !", r"( ಠ.ಠ )!!", r"  /^\  "],
+            [r" @ @ !!", r"( ಠ.ಠ )!!", r"  /v\  "],
+        ],
+        "offline": [[r" - -   ", r"( x.x )..", r"  \/   "]],
     },
     "ghost": {
         "sleeping": [[r"  __   ", r" (-.-)z", r"  ~~~  "], [r"  __   ", r" (-.-)zz", r"  ~~~  "]],
         "working": [[r"  __   ", r" (o.o)", r"  ~~~  "], [r"  __   ", r" (o.O)", r"  ~-~  "]],
         "perked": [[r"  __   ", r" (o.o)?", r"  ~~~  "], [r"  __   ", r" (O.o)?", r"  ~-~  "]],
         "happy": [[r"  __   ", r" (^.^)*", r"  ~~~  "], [r"  __   ", r" (>.<)*", r"  ~-~  "]],
+        "alert": [[r"  __   ", r" (O.O)!", r"  ~~~  "], [r"  __   ", r" (O.O)!!", r"  ~-~  "]],
+        "alarmed": [
+            [r"  __  !", r" (ಠ.ಠ)!!", r"  ~^~  "],
+            [r"  __ !!", r" (ಠ.ಠ)!!", r"  ~v~  "],
+        ],
+        # Fading out, as the adult does: the body thins to a wisp.
+        "offline": [[r"   _   ", r"  (.)..", r"   ~   "]],
     },
     "robot": {
         "sleeping": [[r"   |   ", r"  [-.-]z", r"   ^   "], [r"   |   ", r"  [-.-]zz", r"   ^   "]],
@@ -551,6 +610,12 @@ BABY = {
         "perked": [[r"   |   ", r"  [o.o]?", r"   ^   "], [r"   |   ", r"  [O.o]?", r"   ^   "]],
         # Antenna pops to '!' on the second frame, as the adult's _|_ -> _!_ does.
         "happy": [[r"   |   ", r"  [^.^]*", r"   ^   "], [r"   !   ", r"  [>.<]*", r"   ^   "]],
+        "alert": [[r"   |   ", r"  [O.O]!", r"   ^   "], [r"   |   ", r"  [O.O]!!", r"   ^   "]],
+        "alarmed": [
+            [r"   !  !", r"  [ಠ.ಠ]!!", r"   ^   "],
+            [r"   ! !!", r"  [ಠ.ಠ]!!", r"   ^   "],
+        ],
+        "offline": [[r"   .   ", r"  [x.x]..", r"   ^   "]],
     },
     "cactus": {
         "sleeping": [
@@ -561,12 +626,24 @@ BABY = {
         "perked": [[r"  \|/  ", r" |(o.o)|?", r"  |_|  "], [r"  \|/  ", r" |(O.o)|?", r"  |_|  "]],
         # Sparkle crosses the flower, as in the adult.
         "happy": [[r"  \|/ *", r" |(^.^)|", r"  |_|  "], [r" *\|/  ", r" |(>.<)|", r"  |_|  "]],
+        "alert": [[r"  \|/  ", r" |(O.O)|!", r"  |_|  "], [r"  \|/  ", r" |(O.O)|!!", r"  |_|  "]],
+        "alarmed": [
+            [r"  \|/ !", r" |(ಠ.ಠ)|!!", r"  |^|  "],
+            [r"  \|/!!", r" |(ಠ.ಠ)|!!", r"  |v|  "],
+        ],
+        "offline": [[r"  \|/  ", r" |(x.x)|..", r"  |_|  "]],
     },
     "crab": {
         "sleeping": [[r" (\/)  ", r" (-.-)z", r" /'\   "], [r" (\/)  ", r" (-.-)zz", r" /'\   "]],
         "working": [[r" (\/)  ", r" (o.o)", r" /'\   "], [r" (/\)  ", r" (o.O)", r" \'/   "]],
         "perked": [[r" (\/)  ", r" (o.o)?", r" /'\   "], [r" (/\)  ", r" (O.o)?", r" \'/   "]],
         "happy": [[r" (\/) *", r" (^.^)", r" /'\   "], [r" (/\)* ", r" (>.<)", r" \'/   "]],
+        "alert": [[r" (\/)  ", r" (O.O)!", r" /'\   "], [r" (/\)  ", r" (O.O)!!", r" \'/   "]],
+        "alarmed": [
+            [r" (\/) !", r" (ಠ.ಠ)!!", r" /^\   "],
+            [r" (/\)!!", r" (ಠ.ಠ)!!", r" \v/   "],
+        ],
+        "offline": [[r" (\/)  ", r" (x.x)..", r" /'\   "]],
     },
     "octopus": {
         "sleeping": [
@@ -576,6 +653,12 @@ BABY = {
         "working": [[r"  ,^.  ", r" (~o.o~)", r"  |~|  "], [r"  ,^.  ", r" (~o.O~)", r"  ~|~  "]],
         "perked": [[r"  ,^.  ", r" (~o.o~)?", r"  |~|  "], [r"  ,^.  ", r" (~O.o~)?", r"  ~|~  "]],
         "happy": [[r"  ,^. *", r" (~^.^~)", r"  |~|  "], [r" *,^.  ", r" (~>.<~)", r"  ~|~  "]],
+        "alert": [[r"  ,^.  ", r" (~O.O~)!", r"  |~|  "], [r"  ,^.  ", r" (~O.O~)!!", r"  ~|~  "]],
+        "alarmed": [
+            [r"  ,^. !", r" (~ಠ.ಠ~)!!", r"  ^|^  "],
+            [r"  ,^.!!", r" (~ಠ.ಠ~)!!", r"  v|v  "],
+        ],
+        "offline": [[r"  ,^.  ", r" (~x.x~)..", r"  |~|  "]],
     },
 }
 

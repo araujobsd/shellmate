@@ -103,12 +103,17 @@ def test_baby_only_defines_sleeping_and_working():
         )
 
 
-def test_baby_frames_have_two_frames_each():
-    """Each baby mood should have exactly 2 frames."""
+def test_baby_frames_have_the_right_frame_count():
+    """Baby moods carry 2 frames, except offline, which carries 1.
+
+    This mirrors the adult contract: offline does not animate at any age, because
+    a buddy that cannot see session state should not look alive.
+    """
     for char_name, moods in BABY.items():
         for mood, frames in moods.items():
-            msg = f"BABY[{char_name}][{mood}] has {len(frames)} frames, expected 2"
-            assert len(frames) == 2, msg
+            expected = 1 if mood == "offline" else 2
+            msg = f"BABY[{char_name}][{mood}] has {len(frames)} frames, expected {expected}"
+            assert len(frames) == expected, msg
 
 
 def test_baby_frames_have_exactly_three_lines():
@@ -138,9 +143,16 @@ def test_baby_frames_within_column_budget():
 
 
 def test_baby_frames_are_distinct():
-    """Each baby mood should have two different frames."""
+    """Animated baby moods have two different frames; offline has a single one.
+
+    offline carries one frame at every age on purpose — a buddy that cannot see
+    session state should not look alive, so it does not animate.
+    """
     for char_name, moods in BABY.items():
         for mood, frames in moods.items():
+            if mood == "offline":
+                assert len(frames) == 1, f"BABY[{char_name}][offline] should not animate"
+                continue
             assert frames[0] != frames[1], f"BABY[{char_name}][{mood}] has identical frames"
 
 
@@ -152,17 +164,17 @@ def test_frames_for_returns_baby_sprites_for_hatchling():
     assert frames == BABY[name]["sleeping"]
 
 
-def test_frames_for_returns_adult_for_hatchling_missing_mood():
-    """frames_for falls back to the adult sprite when baby art is unavailable.
+def test_frames_for_falls_back_to_adult_for_an_unknown_mood():
+    """An unrecognised mood must not raise — fall back to adult art.
 
-    Uses alert, which has no baby art on purpose: alert/alarmed/offline carry a
-    signal and stay full-size at every age. This test used to use perked, back
-    when perked had no baby art either — but that was a bug rather than a
-    decision, and it made a hatchling grow to adult size at the end of every turn.
+    Every real mood now has hatchling art, so this exercises the fallback with a
+    mood that does not exist. It previously used perked, and then alert, as each
+    in turn gained baby art; both of those absences turned out to be bugs that
+    made a hatchling jump to adult size during ordinary use.
     """
     name = DEFAULT_CHARACTER
-    frames = frames_for(name, "alert", stage="hatchling")
-    assert frames == CHARACTERS[name]["alert"]
+    frames = frames_for(name, "not-a-real-mood", stage="hatchling")
+    assert frames == CHARACTERS[name]["sleeping"]
 
 
 def test_frames_for_returns_adult_for_juvenile():

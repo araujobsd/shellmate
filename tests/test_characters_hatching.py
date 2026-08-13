@@ -9,6 +9,7 @@ from shellmate.characters import (
     EGG,
     EGG_COMPACT,
     IDLE,
+    MOODS,
     NAMES,
     SPRITE_LINES,
     SPRITE_MAX_COLS,
@@ -20,8 +21,9 @@ from shellmate.characters import (
 )
 from shellmate.textwidth import width
 
-# Moods that deliberately render full-size at every age. They carry a signal, so
-# they stay legible rather than shrinking. Documented in the README.
+# The moods that signal something needs you. These used to render full-size at
+# every age; they now have hatchling art like every other mood, and the signal is
+# carried by colour and the ! / !! marks instead.
 SIGNAL_MOODS = ("alert", "alarmed", "offline")
 
 
@@ -252,7 +254,10 @@ def test_baby_covers_every_baby_mood_for_every_species():
         for mood in BABY_MOODS:
             assert mood in BABY[species], f"{species} is missing hatchling {mood}"
             frames = BABY[species][mood]
-            assert len(frames) == 2, f"{species}/{mood} has {len(frames)} frames"
+            expected_frames = 1 if mood == "offline" else 2
+            assert len(frames) == expected_frames, (
+                f"{species}/{mood} has {len(frames)} frames, expected {expected_frames}"
+            )
             for i, frame in enumerate(frames):
                 assert len(frame) == SPRITE_LINES, f"{species}/{mood} f{i} line count"
                 for line in frame:
@@ -272,12 +277,22 @@ def test_hatchling_does_not_grow_up_on_perked_or_happy():
             assert got != CHARACTERS[species][mood], f"{species}/{mood} fell back to adult"
 
 
-def test_signal_moods_stay_full_size_at_every_age():
-    """alert/alarmed/offline are age-independent on purpose — do not shrink them."""
+def test_a_hatchling_is_hatchling_sized_in_every_mood():
+    """No mood may render a hatchling at adult size — including the signal moods.
+
+    alert/alarmed/offline used to be excluded so they would stay "legible" at full
+    size. But an idle solo session sits in alert, so the buddy was adult-sized
+    most of the time and a hatchling only while a prompt ran; the size flipped
+    constantly and the stage was nearly invisible. Urgency now rides entirely on
+    colour and the ! / !! marks, which do not depend on size.
+    """
     for species in NAMES:
         for mood in SIGNAL_MOODS:
-            assert mood not in BABY_MOODS
-            assert frames_for(species, mood, stage="hatchling") == CHARACTERS[species][mood]
+            assert mood in BABY_MOODS, f"{mood} lost its hatchling art"
+        for mood in MOODS:
+            got = frames_for(species, mood, stage="hatchling")
+            assert got == BABY[species][mood], f"{species}/{mood} is not the baby sprite"
+            assert got != CHARACTERS[species][mood], f"{species}/{mood} fell back to adult"
 
 
 def _all_art_lines():
