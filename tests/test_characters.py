@@ -557,3 +557,119 @@ def test_update_phrase_for_returns_from_registry():
             assert phrase in UPDATE_PHRASES[name], (
                 f"{name}: {phrase!r} not in UPDATE_PHRASES[{name}]"
             )
+
+
+def test_only_secret_buddies_may_use_non_ascii_art():
+    """Public buddies stay ASCII; block art is reserved for opt-in buddies.
+
+    Everyone gets a public buddy whether they chose it or not, so those must
+    render everywhere — including terminals set to ambiguous-width=double, and
+    for anyone using ascii_glyphs. A secret buddy can only be chosen by hand, so
+    it is free to use block glyphs; if it looks wrong you simply do not set it.
+    """
+    from shellmate.characters import BABY, BLOCK_ART_NAMES, CHARACTERS, PUBLIC_NAMES, SECRET_NAMES
+
+    for name in BLOCK_ART_NAMES:
+        assert name in SECRET_NAMES, f"{name} uses block art but is not secret"
+
+    for name in PUBLIC_NAMES:
+        for table in (CHARACTERS, BABY):
+            for mood, frames in table[name].items():
+                for frame in frames:
+                    for line in frame:
+                        non_ascii = {c for c in line if ord(c) > 127}
+                        # ಠ is the long-standing exception in the alarmed face.
+                        assert non_ascii <= {"ಠ"}, f"{name}/{mood}: {sorted(non_ascii)}"
+
+
+def test_block_art_stays_in_one_width_class():
+    """Mixing Block Element classes tears the sprite where they differ.
+
+    ▌ is class A but ▐ is N, and the corner glyphs ▛▜▙▟ are N while the solid
+    ▀▄█▒▓ are A — so a natural-looking design silently mixes them. The block
+    buddy uses the A set only.
+    """
+    import unicodedata
+
+    from shellmate.characters import BABY, BLOCK_ART_NAMES, CHARACTERS
+
+    for name in BLOCK_ART_NAMES:
+        for table in (CHARACTERS, BABY):
+            for mood, frames in table[name].items():
+                for frame in frames:
+                    for line in frame:
+                        blocks = [c for c in line if 0x2580 <= ord(c) <= 0x259F]
+                        classes = {unicodedata.east_asian_width(c) for c in blocks}
+                        assert classes <= {"A"}, (
+                            f"{name}/{mood}: block glyphs from more than one width "
+                            f"class: {sorted(classes)} in {line!r}"
+                        )
+
+
+def test_block_art_top_and_bottom_lines_are_symmetric():
+    """A block buddy's cap and floor must mirror, or it looks like it is toppling.
+
+    The existing mirror-pair test only knows about /\\, <>, () and [] — block
+    glyphs are invisible to it. The ember hatchling shipped with caps like ▄▓
+    and ▄█: two different glyphs side by side with no mirror, where the adult
+    had ▄▓▄. Nothing caught it until it was looked at on screen.
+
+    The glyphs used here (▄ ▀ █ ▓ ▒ ▁ ▔) are all self-mirroring, so a plain
+    palindrome check is the right test.
+    """
+    from shellmate.characters import BABY, BLOCK_ART_NAMES, CHARACTERS
+
+    for name in BLOCK_ART_NAMES:
+        for table_name, table in (("adult", CHARACTERS), ("baby", BABY)):
+            for mood, frames in table[name].items():
+                for i, frame in enumerate(frames):
+                    for line_no in (0, 2):  # cap and floor; the face is not symmetric
+                        core = frame[line_no].strip().rstrip("!?*z. ")
+                        assert core == core[::-1], (
+                            f"{table_name} {name}/{mood} f{i} line{line_no}: "
+                            f"{frame[line_no]!r} is not mirrored"
+                        )
+
+
+def test_a_block_hatchling_is_narrower_than_its_adult():
+    """The hatchling must actually be smaller, not just differently padded.
+
+    The ember's first hatchling reused the adult face verbatim — ▒o.o▒ in both —
+    so the only difference was a space of padding. Every other species contracts
+    its face as well as its body.
+    """
+    from shellmate.characters import BABY, BLOCK_ART_NAMES, CHARACTERS
+    from shellmate.textwidth import width
+
+    for name in BLOCK_ART_NAMES:
+        for mood in CHARACTERS[name]:
+            adult_face = CHARACTERS[name][mood][0][1].strip()
+            baby_face = BABY[name][mood][0][1].strip()
+            assert width(baby_face) < width(adult_face), (
+                f"{name}/{mood}: hatchling face {baby_face!r} is not narrower "
+                f"than the adult's {adult_face!r}"
+            )
+
+
+def test_block_buddy_burns_in_step_at_both_sizes():
+    """A block buddy's hatchling and adult must be on the same beat.
+
+    The cap and floor carry the burn, and both sizes draw them identically at a
+    given frame index — only the face differs, because the hatchling's is smaller.
+    They were drawn separately at first and drifted: the adult ran ▀ █ ▀ ▓ while
+    the hatchling ran ▄ █ ▓ ▀, so watching one after the other looked wrong
+    without it being obvious why.
+    """
+    from shellmate.characters import BABY, BLOCK_ART_NAMES, CHARACTERS
+
+    for name in BLOCK_ART_NAMES:
+        for mood, adult_frames in CHARACTERS[name].items():
+            baby_frames = BABY[name][mood]
+            assert len(adult_frames) == len(baby_frames), f"{name}/{mood}: frame counts differ"
+            for i, (adult, baby) in enumerate(zip(adult_frames, baby_frames, strict=True)):
+                assert adult[0] == baby[0], (
+                    f"{name}/{mood} f{i}: caps out of step, {adult[0]!r} vs {baby[0]!r}"
+                )
+                assert adult[2] == baby[2], (
+                    f"{name}/{mood} f{i}: floors out of step, {adult[2]!r} vs {baby[2]!r}"
+                )

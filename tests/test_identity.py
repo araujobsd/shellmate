@@ -176,13 +176,14 @@ def test_identity_is_frozen():
 
 
 def test_rare_and_secret_species_are_not_in_the_common_pool():
-    from shellmate.characters import COMMON_NAMES, NAMES, RARE_SPECIES, SECRET_SPECIES
+    from shellmate.characters import COMMON_NAMES, NAMES, RARE_SPECIES, SECRET_NAMES
 
     assert RARE_SPECIES in NAMES
-    assert SECRET_SPECIES in NAMES
     assert RARE_SPECIES not in COMMON_NAMES
-    assert SECRET_SPECIES not in COMMON_NAMES
-    assert set(COMMON_NAMES) | {RARE_SPECIES, SECRET_SPECIES} == set(NAMES)
+    for secret in SECRET_NAMES:
+        assert secret in NAMES, f"{secret} is not in the roster at all"
+        assert secret not in COMMON_NAMES, f"{secret} can be rolled"
+    assert set(COMMON_NAMES) | {RARE_SPECIES} | set(SECRET_NAMES) == set(NAMES)
 
 
 def test_species_is_rare_exactly_when_the_seed_is_rare():
@@ -210,18 +211,19 @@ def test_rare_species_lands_near_its_advertised_odds():
     )
 
 
-def test_every_species_except_the_secret_one_is_reachable():
-    """The secret buddy must be unreachable by ANY seed — that is the whole point.
+def test_every_species_except_the_secret_ones_is_reachable():
+    """Secret buddies must be unreachable by ANY seed — that is the whole point.
 
-    It is excluded from COMMON_NAMES and is not the rare roll either, so no amount
-    of re-rolling can produce it. The only way in is setting it in config.toml.
+    They are excluded from COMMON_NAMES and are not the rare roll either, so no
+    amount of re-rolling produces one. The only way in is config.toml.
     """
-    from shellmate.characters import NAMES, SECRET_SPECIES
+    from shellmate.characters import NAMES, SECRET_NAMES
     from shellmate.identity import species_from_seed
 
     seen = {species_from_seed(f"seed-{i}") for i in range(100_000)}
-    assert SECRET_SPECIES not in seen, "the secret species was minted by a seed"
-    assert seen == set(NAMES) - {SECRET_SPECIES}, f"unreachable: {set(NAMES) - seen}"
+    for secret in SECRET_NAMES:
+        assert secret not in seen, f"{secret} was minted by a seed"
+    assert seen == set(NAMES) - set(SECRET_NAMES), f"unreachable: {set(NAMES) - seen}"
 
 
 def test_rarity_is_deterministic_for_a_given_seed():
@@ -239,3 +241,23 @@ def test_rarity_is_independent_of_the_name():
 
     rare_names = {name_from_seed(f"seed-{i}") for i in range(100_000) if is_rare_seed(f"seed-{i}")}
     assert len(rare_names) > 50, f"rare buddies only ever get {len(rare_names)} names"
+
+
+def test_glitch_and_ember_are_named_as_unrollable():
+    """Pin the secret buddies by name, not by whatever SECRET_NAMES happens to say.
+
+    The reachability test above derives its expectation from SECRET_NAMES, so
+    dropping a species from that tuple moves the goalposts and the test still
+    passes while the buddy quietly becomes mintable. This one names them.
+    """
+    from shellmate.characters import COMMON_NAMES, NAMES, SECRET_NAMES
+    from shellmate.identity import species_from_seed
+
+    for name in ("glitch", "ember"):
+        assert name in NAMES, f"{name} left the roster"
+        assert name in SECRET_NAMES, f"{name} is no longer marked secret"
+        assert name not in COMMON_NAMES, f"{name} became rollable"
+
+    seen = {species_from_seed(f"seed-{i}") for i in range(50_000)}
+    assert "glitch" not in seen
+    assert "ember" not in seen

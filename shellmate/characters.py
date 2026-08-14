@@ -515,6 +515,48 @@ CHARACTERS = {
         ],
         "offline": [[r" [.....] ", r" ( x.x ) ", r" [.....] "]],
     },
+    # Secret, and the only buddy drawn in block glyphs — see BLOCK_ART_NAMES. The
+    # shading (▒ ▓ █) is the animation: the core brightens and dims rather than
+    # the body changing shape, which is what a burning thing actually does.
+    "ember": {
+        "sleeping": [
+            [r"  ▄▄▄  ", r" ▒-.-▒  ", r"  ▀▀▀  "],
+            [r"  ▄▀▄  ", r" ▏-.-▕ z", r"  ▀▀▀  "],
+            [r"  ▄▄▄  ", r" ▏-.-▕ z", r"  ▀▄▀  "],
+            [r"  ▄▀▄  ", r" ▒-.-▒  ", r"  ▀▀▀  "],
+        ],
+        "working": [
+            [r"  ▄▀▄  ", r" ▒o.o▒  ", r"  ▀▀▀  "],
+            [r"  ▄▓▄  ", r" ▓o.o▓  ", r"  ▀▄▀  "],
+            [r"  ▄█▄  ", r" █o.O█  ", r"  ▄▀▄  "],
+            [r"  ▄▓▄  ", r" ▓o.o▓  ", r"  ▀▄▀  "],
+        ],
+        "happy": [
+            [r"  ▄█▄  ", r" █^.^█ *", r"  ▀▀▀  "],
+            [r"  ▄▓▄  ", r" ▓>.<▓ *", r"  ▄▀▄  "],
+            [r"  ▄█▄  ", r" █^.^█ *", r"  ▀▄▀  "],
+            [r"  ▄▓▄  ", r" ▓>w<▓ *", r"  ▄▀▄  "],
+        ],
+        "perked": [
+            [r"  ▄▀▄  ", r" ▓o.o▓ ?", r"  ▀▀▀  "],
+            [r"  ▄▓▄  ", r" █O.o█ ?", r"  ▀▄▀  "],
+            [r"  ▄█▄  ", r" █o.O█ ?", r"  ▄▀▄  "],
+            [r"  ▄▓▄  ", r" ▓o.o▓ ?", r"  ▀▄▀  "],
+        ],
+        "alert": [
+            [r"  ▄█▄  ", r" █O.O█ !", r"  ▀▀▀  "],
+            [r"  ▄█▄  ", r" █O.O█ !!", r"  ▀▄▀  "],
+            [r"  ▄▓▄  ", r" ▓O.O▓ !", r"  ▀▀▀  "],
+            [r"  ▄█▄  ", r" █O.O█ !!", r"  ▄▀▄  "],
+        ],
+        "alarmed": [
+            [r"  ▄█▄ !", r" █ಠ.ಠ█ !!", r"  ▀▄▀  "],
+            [r"  ▄█▄ !!", r" █ಠ.ಠ█ !!", r"  ▄▀▄  "],
+            [r"  ▄▓▄ !", r" █ಠ.ಠ█ !!", r"  ▀▄▀  "],
+            [r"  ▄█▄ !!", r" ▓ಠ.ಠ▓ !!", r"  ▄▀▄  "],
+        ],
+        "offline": [[r"  ▁▁▁  ", r" ▏x.x▕ ..", r"  ▔▔▔  "]],
+    },
 }
 
 
@@ -577,6 +619,10 @@ IDLE = {
     "glitch": [
         [r" [#####] ", r" ( -.- )*", r" [#####] "],  # blink
         [r" [#?#?#] ", r" ( -.- ) ", r" [?#?#?] "],  # a bad read
+    ],
+    "ember": [
+        [r"  ▄▀▄  ", r" ▒-.-▒*", r"  ▀▀▀  "],  # blink
+        [r"  ▄█▄  ", r" █-.-█ ", r"  ▀▄▀  "],  # a flare
     ],
 }
 
@@ -943,6 +989,49 @@ BABY = {
         ],
         "offline": [[r" [...] ", r"(x.x)", r" [...] "]],
     },
+    # The hatchling is a smaller flame with the face inside it, rather than the
+    # adult's body with block sides: at this size the sides crowded the eyes and
+    # the cap ended up as a lopsided pair (▄▓) instead of a mirrored one (▄▓▄).
+    # Every cap and floor line here is a palindrome; a test enforces it.
+    "ember": {
+        "sleeping": [
+            [r"  ▄▄▄  ", r"  -.-  ", r"  ▀▀▀  "],
+            [r"  ▄▀▄  ", r"  -.- z", r"  ▀▀▀  "],
+            [r"  ▄▄▄  ", r"  -.- z", r"  ▀▄▀  "],
+            [r"  ▄▀▄  ", r"  -.-  ", r"  ▀▀▀  "],
+        ],
+        "working": [
+            [r"  ▄▀▄  ", r"  o.o  ", r"  ▀▀▀  "],
+            [r"  ▄▓▄  ", r"  o.o  ", r"  ▀▄▀  "],
+            [r"  ▄█▄  ", r"  o.O  ", r"  ▄▀▄  "],
+            [r"  ▄▓▄  ", r"  o.o  ", r"  ▀▄▀  "],
+        ],
+        "happy": [
+            [r"  ▄█▄  ", r"  ^.^ *", r"  ▀▀▀  "],
+            [r"  ▄▓▄  ", r"  >.< *", r"  ▄▀▄  "],
+            [r"  ▄█▄  ", r"  ^.^ *", r"  ▀▄▀  "],
+            [r"  ▄▓▄  ", r"  >w< *", r"  ▄▀▄  "],
+        ],
+        "perked": [
+            [r"  ▄▀▄  ", r"  o.o ?", r"  ▀▀▀  "],
+            [r"  ▄▓▄  ", r"  O.o ?", r"  ▀▄▀  "],
+            [r"  ▄█▄  ", r"  o.O ?", r"  ▄▀▄  "],
+            [r"  ▄▓▄  ", r"  o.o ?", r"  ▀▄▀  "],
+        ],
+        "alert": [
+            [r"  ▄█▄  ", r"  O.O !", r"  ▀▀▀  "],
+            [r"  ▄█▄  ", r"  O.O !!", r"  ▀▄▀  "],
+            [r"  ▄▓▄  ", r"  O.O !", r"  ▀▀▀  "],
+            [r"  ▄█▄  ", r"  O.O !!", r"  ▄▀▄  "],
+        ],
+        "alarmed": [
+            [r"  ▄█▄ !", r"  ಠ.ಠ !!", r"  ▀▄▀  "],
+            [r"  ▄█▄ !!", r"  ಠ.ಠ !!", r"  ▄▀▄  "],
+            [r"  ▄▓▄ !", r"  ಠ.ಠ !!", r"  ▀▄▀  "],
+            [r"  ▄█▄ !!", r"  ಠ.ಠ !!", r"  ▄▀▄  "],
+        ],
+        "offline": [[r"  ▁▁▁  ", r"  x.x ..", r"  ▔▔▔  "]],
+    },
 }
 
 
@@ -961,13 +1050,21 @@ RARE_ODDS = 100
 # It is also hidden from --all, which is the roster people browse. Being absent
 # from both COMMON_NAMES and the rare roll is what makes "nobody can mint it"
 # true by construction rather than by a low probability.
-SECRET_SPECIES = "glitch"
+SECRET_NAMES = ("glitch", "ember")
+SECRET_SPECIES = SECRET_NAMES[0]  # kept for callers that want just one
 
 # Species an ordinary roll can produce: everything except the rare and secret ones.
-COMMON_NAMES = tuple(n for n in NAMES if n not in (RARE_SPECIES, SECRET_SPECIES))
+COMMON_NAMES = tuple(n for n in NAMES if n not in (RARE_SPECIES, *SECRET_NAMES))
 
-# What --all lists. The secret buddy is deliberately missing.
-PUBLIC_NAMES = tuple(n for n in NAMES if n != SECRET_SPECIES)
+# What --all lists. The secret buddies are deliberately missing.
+PUBLIC_NAMES = tuple(n for n in NAMES if n not in SECRET_NAMES)
+
+# Secret buddies are the only ones allowed to use non-ASCII art. They cannot be
+# rolled, only chosen by hand, so nobody meets one by accident — which is what
+# makes it safe for `ember` to be drawn in block glyphs that a terminal set to
+# ambiguous-width=double would render at the wrong size. Public buddies stay
+# ASCII precisely because everyone gets one whether they chose it or not.
+BLOCK_ART_NAMES = ("ember",)
 
 
 # Phrases: character -> mood -> tuple of 4-6 distinct phrases per mood.
@@ -1567,6 +1664,52 @@ PHRASES = {
             "signal lost. holding position",
         ),
     },
+    "ember": {
+        "sleeping": (
+            "banked down to a glow",
+            "keeping just enough lit",
+            "smouldering, not out",
+            "low flame. still here",
+            "resting under the ash",
+        ),
+        "working": (
+            "burning nicely now",
+            "feed it and it climbs",
+            "good heat on this one",
+            "the draught is right",
+            "catching properly",
+        ),
+        "happy": (
+            "flared up at that",
+            "warmth, freely given",
+            "that was worth burning for",
+            "crackling, if you must know",
+        ),
+        "perked": (
+            "a spark went up",
+            "something caught",
+            "did that take",
+            "an updraught, maybe",
+        ),
+        "alert": (
+            "running low on fuel",
+            "this needs tending",
+            "the heat is dropping",
+            "someone should look at me",
+        ),
+        "alarmed": (
+            "IT IS GOING OUT",
+            "TEND TO THIS NOW",
+            "DOWN TO THE LAST EMBER",
+            "COLD IN A MOMENT",
+        ),
+        "offline": (
+            "gone to ash",
+            "no draught, no light",
+            "cold in the grate",
+            "nothing left to catch",
+        ),
+    },
 }
 
 
@@ -1635,6 +1778,11 @@ UPDATE_PHRASES = {
         "a newer build exists. i can sense it",
         "version drift detected",
         "patch available. apply at will",
+    ),
+    "ember": (
+        "fresh fuel exists, if you want it",
+        "a newer flame is available",
+        "there is a brighter build now",
     ),
 }
 
@@ -1833,6 +1981,15 @@ COMPACT = {
         "alert": "#O.O#",
         "alarmed": "#ಠ.ಠ#",
         "offline": "#x.x#",
+    },
+    "ember": {
+        "sleeping": "▒-.-▒",
+        "working": "▒o.o▒",
+        "happy": "█^.^█",
+        "perked": "▓o.O▓",
+        "alert": "█O.O█",
+        "alarmed": "█ಠ.ಠ█",
+        "offline": "▏x.x▕",
     },
 }
 
