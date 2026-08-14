@@ -102,9 +102,10 @@ the count goes in `--whoami`. Petting never overrides `alert`, `alarmed` or
 
 ## Characters
 
-Eleven, plus one you probably won't get. Each has its own face, compact form,
-hatchling variant, idle behaviour, and about 30 phrases in its own voice — 354 in
-total across the roster.
+Sixteen. Each has its own face, compact form, hatchling variant, idle behaviour,
+and about 30 phrases in its own voice — 474 in total across the roster.
+
+**Eleven you can roll.** One is picked for you at first hatch:
 
 | | | |
 |---|---|---|
@@ -113,17 +114,45 @@ total across the roster.
 | **penguin** `<o.o>` pompous, dignified | **robot** `[o.o]` terse, machine-like | **cactus** `\|o.o\|` stoic, needs nothing |
 | **crab** `%o.o%` sideways thinker | **octopus** `8o.o8` frazzled, many-handed | |
 
-There is a twelfth. It is rolled separately from the other eleven, at 1 in 100,
-and it is gold. `--whoami` will tell you if you got one. If you want to know what
-it looks like before you roll it, `--all` shows it — but that is a spoiler, and
-the odds are the same either way. Delete `identity.json` to roll again.
+**Two rare ones, each 1 in 100.** They roll like any other buddy, they just
+almost never come up. `--whoami` tells you if you got one.
+
+| | |
+|---|---|
+| **dragon** `^o.o^` imperious, bored by mortals | **glitch** `#0.0#` corrupted, speaks in hex |
+
+The dragon is gold. The glitch renders as a moving spectrum — every glyph a
+different colour — and animates on four frames instead of two.
+
+**Three you cannot roll at all.** These are set by hand or not at all:
+
+```toml
+# ~/.config/shellmate/config.toml
+character = "ember"
+```
+
+| | |
+|---|---|
+| **ember** `▒o.o▒` a small burning thing | **moth** `▚o.o▞` drawn to any light |
+| **golem** `▙o.o▟` slow, patient, made of stone | |
 
 ```
-   \|/          (\ /)         ,-^-.
-  |(o.o)|      ( o.o )       (~o.o~)
-   |___|        /'-'\         ~|~|~
-  cactus         crab         octopus
+   ▄▀▄       ▚▚▚   ▞▞▞     ▛▜     ▛▜
+  ▒o.o▒       ▚▖o.o▗▞      ▙▙o.o▟▟
+   ▀▀▀       ▘       ▝       ▙░▟
+   ember         moth        golem
 ```
+
+They are drawn in Unicode block glyphs rather than ASCII, which is exactly why
+they are opt-in. Block glyphs come in two East Asian Width classes, and a
+terminal configured with `ambiguous-width=double` renders them at twice the
+expected size. A buddy you rolled by accident has to work everywhere; a buddy you
+chose by name does not, and you can simply unset it. Everything rollable stays
+pure ASCII for that reason.
+
+Set `character` back to any name above, or delete the line, to return to your
+rolled buddy — your identity is untouched by the override, and `--whoami` shows
+both.
 
 ## Configuration
 

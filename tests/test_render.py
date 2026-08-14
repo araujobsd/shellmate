@@ -264,21 +264,21 @@ def test_colour_does_not_change_the_visible_text():
             assert [ANSI.sub("", line) for line in painted] == plain, mood
 
 
-def test_the_secret_buddy_is_multicoloured_here_too():
+def test_the_multicoloured_buddy_is_multicoloured_here_too():
     """The TUI and the status line must not disagree about the spectrum."""
     import time
 
-    from shellmate.characters import SECRET_SPECIES
     from shellmate.config import Config
     from shellmate.identity import Identity
 
     now = time.time()
-    ident = Identity(seed="s" * 32, name="Testu", species=SECRET_SPECIES, born_at=now - 5 * 86400)
+    species = "glitch"
+    ident = Identity(seed="s" * 32, name="Testu", species=species, born_at=now - 5 * 86400)
     lines = frame(
         snap(mood="working"),
         0,
         60,
-        character=SECRET_SPECIES,
+        character=species,
         color=True,
         identity=ident,
         now=now,

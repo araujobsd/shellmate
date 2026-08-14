@@ -176,35 +176,42 @@ def test_identity_is_frozen():
 
 
 def test_rare_and_secret_species_are_not_in_the_common_pool():
-    from shellmate.characters import COMMON_NAMES, NAMES, RARE_SPECIES, SECRET_NAMES
+    from shellmate.characters import COMMON_NAMES, NAMES, RARE_NAMES, SECRET_NAMES
 
-    assert RARE_SPECIES in NAMES
-    assert RARE_SPECIES not in COMMON_NAMES
-    for secret in SECRET_NAMES:
-        assert secret in NAMES, f"{secret} is not in the roster at all"
-        assert secret not in COMMON_NAMES, f"{secret} can be rolled"
-    assert set(COMMON_NAMES) | {RARE_SPECIES} | set(SECRET_NAMES) == set(NAMES)
+    for name in (*RARE_NAMES, *SECRET_NAMES):
+        assert name in NAMES, f"{name} is not in the roster at all"
+        assert name not in COMMON_NAMES, f"{name} can be rolled ordinarily"
+    assert set(COMMON_NAMES) | set(RARE_NAMES) | set(SECRET_NAMES) == set(NAMES)
 
 
 def test_species_is_rare_exactly_when_the_seed_is_rare():
-    """species_from_seed and is_rare_seed must never disagree."""
-    from shellmate.characters import RARE_SPECIES
-    from shellmate.identity import is_rare_seed, species_from_seed
+    """species_from_seed, rare_species_for_seed and is_rare_seed must agree."""
+    from shellmate.characters import RARE_NAMES
+    from shellmate.identity import is_rare_seed, rare_species_for_seed, species_from_seed
 
     for i in range(5000):
         seed = f"seed-{i}"
-        assert (species_from_seed(seed) == RARE_SPECIES) == is_rare_seed(seed), seed
+        species = species_from_seed(seed)
+        rare = rare_species_for_seed(seed)
+        assert (species in RARE_NAMES) == is_rare_seed(seed), seed
+        assert rare == (species if species in RARE_NAMES else None), seed
 
 
 def test_rare_species_lands_near_its_advertised_odds():
-    """Fixed seeds, so this measures the roll rather than the RNG of the day."""
-    from shellmate.characters import RARE_ODDS, RARE_SPECIES
+    """Fixed seeds, so this measures the roll rather than the RNG of the day.
+
+    Each rare species rolls independently, so adding one must not dilute the
+    others — every entry is checked separately rather than as a shared pool.
+    """
+    from shellmate.characters import RARE_NAMES, RARE_ODDS
     from shellmate.identity import species_from_seed
 
     sample = 100_000
-    hits = sum(1 for i in range(sample) if species_from_seed(f"seed-{i}") == RARE_SPECIES)
-    assert hits, "the rare species is unreachable"
-    observed = sample / hits
+    rolled = [species_from_seed(f"seed-{i}") for i in range(sample)]
+    for name in RARE_NAMES:
+        hits = rolled.count(name)
+        assert hits, f"{name} is unreachable"
+        observed = sample / hits
     # Generous bounds: this pins the order of magnitude, not the exact ratio.
     assert RARE_ODDS * 0.5 <= observed <= RARE_ODDS * 2.0, (
         f"1 in {observed:.0f}, expected about 1 in {RARE_ODDS}"
@@ -243,21 +250,38 @@ def test_rarity_is_independent_of_the_name():
     assert len(rare_names) > 50, f"rare buddies only ever get {len(rare_names)} names"
 
 
-def test_glitch_and_ember_are_named_as_unrollable():
+def test_the_block_buddies_are_named_as_unrollable():
     """Pin the secret buddies by name, not by whatever SECRET_NAMES happens to say.
 
-    The reachability test above derives its expectation from SECRET_NAMES, so
-    dropping a species from that tuple moves the goalposts and the test still
-    passes while the buddy quietly becomes mintable. This one names them.
+    The reachability test derives its expectation from SECRET_NAMES, so dropping
+    a species from that tuple moves the goalposts and the test still passes while
+    the buddy quietly becomes mintable. This one names them. They are exactly the
+    buddies drawn in block glyphs, which is the reason they must stay opt-in.
     """
-    from shellmate.characters import COMMON_NAMES, NAMES, SECRET_NAMES
+    from shellmate.characters import BLOCK_ART_NAMES, COMMON_NAMES, NAMES, SECRET_NAMES
     from shellmate.identity import species_from_seed
 
-    for name in ("glitch", "ember"):
+    for name in ("ember", "moth", "golem"):
         assert name in NAMES, f"{name} left the roster"
         assert name in SECRET_NAMES, f"{name} is no longer marked secret"
+        assert name in BLOCK_ART_NAMES, f"{name} is no longer marked as block art"
         assert name not in COMMON_NAMES, f"{name} became rollable"
 
     seen = {species_from_seed(f"seed-{i}") for i in range(50_000)}
-    assert "glitch" not in seen
-    assert "ember" not in seen
+    for name in ("ember", "moth", "golem"):
+        assert name not in seen, f"{name} was minted by a seed"
+
+
+def test_the_glitch_is_rollable_now():
+    """It is pure ASCII, so it renders anywhere and can safely be rolled.
+
+    This is the line between rare and secret: rare buddies reach people who did
+    not choose them, so their art has to work everywhere.
+    """
+    from shellmate.characters import RARE_NAMES, SECRET_NAMES
+    from shellmate.identity import species_from_seed
+
+    assert "glitch" in RARE_NAMES
+    assert "glitch" not in SECRET_NAMES
+    seen = {species_from_seed(f"seed-{i}") for i in range(50_000)}
+    assert "glitch" in seen, "the glitch should be reachable by a seed now"

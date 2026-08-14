@@ -557,6 +557,85 @@ CHARACTERS = {
         ],
         "offline": [[r"  ▁▁▁  ", r" ▏x.x▕ ..", r"  ▔▔▔  "]],
     },
+    # Class-N block art: corners, diagonals and quadrants. Secret, so opt-in only.
+    "moth": {
+        "sleeping": [
+            [r" ▖▖   ▗▗ ", r" ▚▖-.-▗▞ ", r"         "],
+            [r" ▖▖   ▗▗ ", r" ▚▖-.-▗▞  z", r"         "],
+            [r" ▖▖   ▗▗ ", r" ▚▖-.-▗▞  z", r"         "],
+            [r" ▖▖   ▗▗ ", r" ▚▖-.-▗▞ ", r"         "],
+        ],
+        "working": [
+            [r"▚▚▚   ▞▞▞", r" ▚▖o.o▗▞ ", r"▘       ▝"],
+            [r"▖▖▖   ▗▗▗", r" ▚▖o.o▗▞ ", r"▘▘     ▝▝"],
+            [r"▘       ▝", r" ▚▖o.O▗▞ ", r"▞▞▞   ▚▚▚"],
+            [r"▖▖▖   ▗▗▗", r" ▚▖o.o▗▞ ", r"▘▘     ▝▝"],
+        ],
+        "happy": [
+            [r"▚▚▚   ▞▞▞", r" ▚▖^.^▗▞  *", r"▘       ▝"],
+            [r"▚▚▚   ▞▞▞", r" ▚▖>.<▗▞  *", r"▘▘     ▝▝"],
+            [r"▚▚▚   ▞▞▞", r" ▚▖^.^▗▞  *", r"▘       ▝"],
+            [r"▚▚▚   ▞▞▞", r" ▚▖>w<▗▞  *", r"▘▘     ▝▝"],
+        ],
+        "perked": [
+            [r"▖▖▖   ▗▗▗", r" ▚▖o.o▗▞  ?", r"▘▘     ▝▝"],
+            [r"▚▚▚   ▞▞▞", r" ▚▖O.o▗▞  ?", r"▘       ▝"],
+            [r"▖▖▖   ▗▗▗", r" ▚▖o.O▗▞  ?", r"▘▘     ▝▝"],
+            [r"▚▚▚   ▞▞▞", r" ▚▖o.o▗▞  ?", r"▘       ▝"],
+        ],
+        "alert": [
+            [r"▚▚▚   ▞▞▞", r" ▚▖O.O▗▞  !", r"▘       ▝"],
+            [r"▚▚▚   ▞▞▞", r" ▚▖O.O▗▞  !!", r"▘▘     ▝▝"],
+            [r"▚▚▚   ▞▞▞", r" ▚▖O.O▗▞  !", r"▘       ▝"],
+            [r"▚▚▚   ▞▞▞", r" ▚▖O.O▗▞  !!", r"▘▘     ▝▝"],
+        ],
+        "alarmed": [
+            [r"▚▚▚   ▞▞▞", r" ▚▖ಠ.ಠ▗▞  !!", r"▞▞▞   ▚▚▚"],
+            [r"▞▞▞   ▚▚▚", r" ▚▖ಠ.ಠ▗▞  !!", r"▚▚▚   ▞▞▞"],
+            [r"▚▚▚   ▞▞▞", r" ▚▖ಠ.ಠ▗▞  !!", r"▞▞▞   ▚▚▚"],
+            [r"▞▞▞   ▚▚▚", r" ▚▖ಠ.ಠ▗▞  !!", r"▚▚▚   ▞▞▞"],
+        ],
+        "offline": [[r" ▖▖   ▗▗ ", r" ▚▖x.x▗▞  ..", r"▖       ▗"]],
+    },
+    "golem": {
+        "sleeping": [
+            [r"░       ░", r" ▙▙-.-▟▟ ", r"   ▙░▟   "],
+            [r"░       ░", r" ▙▙-.-▟▟  z", r"   ▙░▟   "],
+            [r"░       ░", r" ▙▙-.-▟▟  z", r"   ▙░▟   "],
+            [r"░       ░", r" ▙▙-.-▟▟ ", r"   ▙░▟   "],
+        ],
+        "working": [
+            [r"▛▜     ▛▜", r" ▙▙o.o▟▟ ", r"   ▙░▟   "],
+            [r"▙▟     ▛▜", r" ▙▙o.o▟▟ ", r"   ▟░▙   "],
+            [r"▛▜     ▙▟", r" ▙▙o.O▟▟ ", r"   ▙░▟   "],
+            [r"▙▟     ▙▟", r" ▙▙o.o▟▟ ", r"   ▟░▙   "],
+        ],
+        "happy": [
+            [r"▛▜     ▛▜", r" ▙▙^.^▟▟  *", r"   ▟░▙   "],
+            [r"▛▛▛   ▜▜▜", r" ▙▙>.<▟▟  *", r"   ▙░▟   "],
+            [r"▛▜     ▛▜", r" ▙▙^.^▟▟  *", r"   ▟░▙   "],
+            [r"▛▛▛   ▜▜▜", r" ▙▙>w<▟▟  *", r"   ▙░▟   "],
+        ],
+        "perked": [
+            [r"▙▟     ▙▟", r" ▙▙o.o▟▟  ?", r"   ▙░▟   "],
+            [r"▛▜     ▙▟", r" ▙▙O.o▟▟  ?", r"   ▟░▙   "],
+            [r"▙▟     ▛▜", r" ▙▙o.O▟▟  ?", r"   ▙░▟   "],
+            [r"▛▜     ▛▜", r" ▙▙o.o▟▟  ?", r"   ▟░▙   "],
+        ],
+        "alert": [
+            [r"▛▛▛   ▜▜▜", r" ▙▙O.O▟▟  !", r"   ▙░▟   "],
+            [r"▛▜     ▛▜", r" ▙▙O.O▟▟  !!", r"   ▟░▙   "],
+            [r"▛▛▛   ▜▜▜", r" ▙▙O.O▟▟  !", r"   ▙░▟   "],
+            [r"▛▜     ▛▜", r" ▙▙O.O▟▟  !!", r"   ▟░▙   "],
+        ],
+        "alarmed": [
+            [r"▛▛▛   ▜▜▜", r" ▙▙ಠ.ಠ▟▟  !!", r"   ▟░▙   "],
+            [r"▛▛     ▜▜", r" ▙▙ಠ.ಠ▟▟  !!", r"   ▙░▟   "],
+            [r"▛▛▛   ▜▜▜", r" ▙▙ಠ.ಠ▟▟  !!", r"   ▟░▙   "],
+            [r"▛▛     ▜▜", r" ▙▙ಠ.ಠ▟▟  !!", r"   ▙░▟   "],
+        ],
+        "offline": [[r"░       ░", r" ▙▙x.x▟▟  ..", r"   ░░░   "]],
+    },
 }
 
 
@@ -623,6 +702,14 @@ IDLE = {
     "ember": [
         [r"  ▄▀▄  ", r" ▒-.-▒*", r"  ▀▀▀  "],  # blink
         [r"  ▄█▄  ", r" █-.-█ ", r"  ▀▄▀  "],  # a flare
+    ],
+    "moth": [
+        [r"  ▖▖ ▗▗  ", r" ▚▖-.-▗▞ ", r"         "],  # settles
+        [r"  ▚▚ ▞▞  ", r" ▚▖-.-▗▞ ", r"  ▘   ▝  "],  # a single beat
+    ],
+    "golem": [
+        [r"  ░   ░  ", r" ▙▙-.-▟▟ ", r"   ▙░▟   "],  # dust drifts
+        [r"  ░   ░  ", r" ▙▙-.-▟▟ ", r"   ▟░▙   "],  # shifts its weight
     ],
 }
 
@@ -1032,6 +1119,84 @@ BABY = {
         ],
         "offline": [[r"  ▁▁▁  ", r"  x.x ..", r"  ▔▔▔  "]],
     },
+    "moth": {
+        "sleeping": [
+            [r" ▖   ▗ ", r" ▖-.-▗ ", r"       "],
+            [r" ▖   ▗ ", r" ▖-.-▗  z", r"       "],
+            [r" ▖   ▗ ", r" ▖-.-▗  z", r"       "],
+            [r" ▖   ▗ ", r" ▖-.-▗ ", r"       "],
+        ],
+        "working": [
+            [r" ▚▚ ▞▞ ", r" ▖o.o▗ ", r" ▘   ▝ "],
+            [r" ▖▖ ▗▗ ", r" ▖o.o▗ ", r" ▘   ▝ "],
+            [r" ▘   ▝ ", r" ▖o.O▗ ", r" ▞▞ ▚▚ "],
+            [r" ▖▖ ▗▗ ", r" ▖o.o▗ ", r" ▘   ▝ "],
+        ],
+        "happy": [
+            [r" ▚▚ ▞▞ ", r" ▖^.^▗  *", r" ▘   ▝ "],
+            [r" ▚▚ ▞▞ ", r" ▖>.<▗  *", r" ▘▘ ▝▝ "],
+            [r" ▚▚ ▞▞ ", r" ▖^.^▗  *", r" ▘   ▝ "],
+            [r" ▚▚ ▞▞ ", r" ▖>w<▗  *", r" ▘▘ ▝▝ "],
+        ],
+        "perked": [
+            [r" ▖▖ ▗▗ ", r" ▖o.o▗  ?", r" ▘   ▝ "],
+            [r" ▚▚ ▞▞ ", r" ▖O.o▗  ?", r" ▘   ▝ "],
+            [r" ▖▖ ▗▗ ", r" ▖o.O▗  ?", r" ▘   ▝ "],
+            [r" ▚▚ ▞▞ ", r" ▖o.o▗  ?", r" ▘   ▝ "],
+        ],
+        "alert": [
+            [r" ▚▚ ▞▞ ", r" ▖O.O▗  !", r" ▘   ▝ "],
+            [r" ▚▚ ▞▞ ", r" ▖O.O▗  !!", r" ▘▘ ▝▝ "],
+            [r" ▚▚ ▞▞ ", r" ▖O.O▗  !", r" ▘   ▝ "],
+            [r" ▚▚ ▞▞ ", r" ▖O.O▗  !!", r" ▘▘ ▝▝ "],
+        ],
+        "alarmed": [
+            [r" ▚▚ ▞▞ ", r" ▖ಠ.ಠ▗  !!", r" ▞▞ ▚▚ "],
+            [r" ▞▞ ▚▚ ", r" ▖ಠ.ಠ▗  !!", r" ▚▚ ▞▞ "],
+            [r" ▚▚ ▞▞ ", r" ▖ಠ.ಠ▗  !!", r" ▞▞ ▚▚ "],
+            [r" ▞▞ ▚▚ ", r" ▖ಠ.ಠ▗  !!", r" ▚▚ ▞▞ "],
+        ],
+        "offline": [[r" ▖   ▗ ", r" ▖x.x▗  ..", r" ▖   ▗ "]],
+    },
+    "golem": {
+        "sleeping": [
+            [r"░     ░", r" ▙-.-▟ ", r"  ▙░▟  "],
+            [r"░     ░", r" ▙-.-▟  z", r"  ▙░▟  "],
+            [r"░     ░", r" ▙-.-▟  z", r"  ▙░▟  "],
+            [r"░     ░", r" ▙-.-▟ ", r"  ▙░▟  "],
+        ],
+        "working": [
+            [r" ▛▜ ▛▜ ", r" ▙o.o▟ ", r"  ▙░▟  "],
+            [r" ▙▟ ▛▜ ", r" ▙o.o▟ ", r"  ▟░▙  "],
+            [r" ▛▜ ▙▟ ", r" ▙o.O▟ ", r"  ▙░▟  "],
+            [r" ▙▟ ▙▟ ", r" ▙o.o▟ ", r"  ▟░▙  "],
+        ],
+        "happy": [
+            [r" ▛▜ ▛▜ ", r" ▙^.^▟  *", r"  ▟░▙  "],
+            [r" ▛▛ ▜▜ ", r" ▙>.<▟  *", r"  ▙░▟  "],
+            [r" ▛▜ ▛▜ ", r" ▙^.^▟  *", r"  ▟░▙  "],
+            [r" ▛▛ ▜▜ ", r" ▙>w<▟  *", r"  ▙░▟  "],
+        ],
+        "perked": [
+            [r" ▙▟ ▙▟ ", r" ▙o.o▟  ?", r"  ▙░▟  "],
+            [r"▛▜   ▙▟", r" ▙O.o▟  ?", r"  ▟░▙  "],
+            [r" ▙▟ ▛▜ ", r" ▙o.O▟  ?", r"  ▙░▟  "],
+            [r" ▛▜ ▛▜ ", r" ▙o.o▟  ?", r"  ▟░▙  "],
+        ],
+        "alert": [
+            [r" ▛▛ ▜▜ ", r" ▙O.O▟  !", r"  ▙░▟  "],
+            [r" ▛▜ ▛▜ ", r" ▙O.O▟  !!", r"  ▟░▙  "],
+            [r" ▛▛ ▜▜ ", r" ▙O.O▟  !", r"  ▙░▟  "],
+            [r" ▛▜ ▛▜ ", r" ▙O.O▟  !!", r"  ▟░▙  "],
+        ],
+        "alarmed": [
+            [r" ▛▛ ▜▜ ", r" ▙ಠ.ಠ▟  !!", r"  ▟░▙  "],
+            [r" ▛▛ ▜▜ ", r" ▙ಠ.ಠ▟  !!", r"  ▙░▟  "],
+            [r" ▛▛ ▜▜ ", r" ▙ಠ.ಠ▟  !!", r"  ▟░▙  "],
+            [r" ▛▛ ▜▜ ", r" ▙ಠ.ಠ▟  !!", r"  ▙░▟  "],
+        ],
+        "offline": [[r"░     ░", r" ▙x.x▟  ..", r"  ░░░  "]],
+    },
 }
 
 
@@ -1042,29 +1207,43 @@ DEFAULT_CHARACTER = NAMES[0]
 # for it separately, at odds of 1 in RARE_ODDS, so adding or removing a common
 # species cannot quietly change how rare it is. Setting it explicitly in
 # config.toml still works; that is a deliberate override, not a lucky roll.
-RARE_SPECIES = "dragon"
+# Rare buddies. Each gets its own independent 1-in-RARE_ODDS roll, so adding one
+# does not dilute the others — with a single shared roll they would have had to
+# share the odds. Rare buddies ARE listed by --all and marked as such: they can
+# genuinely be rolled, so hiding them would be a lie rather than a surprise.
+RARE_NAMES = ("dragon", "glitch")
+RARE_SPECIES = RARE_NAMES[0]  # kept for callers that want just one
 RARE_ODDS = 100
 
-# The secret one. Not in the common pool and not the rare roll either, so no seed
-# can ever produce it — the only way in is `character = "glitch"` in config.toml.
-# It is also hidden from --all, which is the roster people browse. Being absent
-# from both COMMON_NAMES and the rare roll is what makes "nobody can mint it"
-# true by construction rather than by a low probability.
-SECRET_NAMES = ("glitch", "ember")
+# Secret buddies. No seed can produce one — they are absent from the common pool
+# AND from the rare rolls — so the only way in is naming one in config.toml.
+# Hidden from --all, which is the roster people browse.
+#
+# That opt-in requirement is exactly what earns them the right to non-ASCII art:
+# a buddy nobody receives by accident can use block glyphs that a terminal set to
+# ambiguous-width=double renders at the wrong size, because anyone who sees them
+# chose them and can simply stop. A rollable buddy has no such luxury, which is
+# why `glitch` — pure ASCII — can be rolled while these cannot.
+SECRET_NAMES = ("ember", "moth", "golem")
 SECRET_SPECIES = SECRET_NAMES[0]  # kept for callers that want just one
 
 # Species an ordinary roll can produce: everything except the rare and secret ones.
-COMMON_NAMES = tuple(n for n in NAMES if n not in (RARE_SPECIES, *SECRET_NAMES))
+COMMON_NAMES = tuple(n for n in NAMES if n not in (*RARE_NAMES, *SECRET_NAMES))
 
-# What --all lists. The secret buddies are deliberately missing.
+# What --all lists. The secret buddies are deliberately missing; the rare ones
+# are not, because they can actually be rolled.
 PUBLIC_NAMES = tuple(n for n in NAMES if n not in SECRET_NAMES)
 
-# Secret buddies are the only ones allowed to use non-ASCII art. They cannot be
-# rolled, only chosen by hand, so nobody meets one by accident — which is what
-# makes it safe for `ember` to be drawn in block glyphs that a terminal set to
-# ambiguous-width=double would render at the wrong size. Public buddies stay
-# ASCII precisely because everyone gets one whether they chose it or not.
-BLOCK_ART_NAMES = ("ember",)
+# Buddies drawn in block glyphs. Must all be secret — a test enforces it.
+BLOCK_ART_NAMES = SECRET_NAMES
+
+# Block art whose top and bottom lines are meant to mirror. `tide` is deliberately
+# asymmetric — a wave travelling through it would be ruined by symmetry — so the
+# palindrome guard is scoped to the ones that claim it rather than assumed.
+# Block art whose limbs mirror. The golem is deliberately lopsided while working:
+# it moves one slab at a time, which is what makes it read as weight rather than
+# flutter, so it is not held to this.
+SYMMETRIC_ART_NAMES = ("ember", "moth")
 
 
 # Phrases: character -> mood -> tuple of 4-6 distinct phrases per mood.
@@ -1710,6 +1889,98 @@ PHRASES = {
             "nothing left to catch",
         ),
     },
+    "moth": {
+        "sleeping": (
+            "folded up somewhere dark",
+            "waiting for a light to come on",
+            "dust on the wings, don't mind me",
+            "resting between lamps",
+            "the porch light went out",
+        ),
+        "working": (
+            "circling the bright thing",
+            "drawn to it, obviously",
+            "one more pass at the glow",
+            "cannot help myself, it's lit",
+            "orbiting, as is traditional",
+        ),
+        "happy": (
+            "found the light. found it",
+            "wings out, fully",
+            "warmth on the wings at last",
+            "this is the good lamp",
+        ),
+        "perked": (
+            "something flickered",
+            "was that a light",
+            "a glow, briefly",
+            "did the screen just change",
+        ),
+        "alert": (
+            "the light has gone still",
+            "nothing to circle any more",
+            "waiting on something bright",
+            "the glow is fading here",
+        ),
+        "alarmed": (
+            "THE LIGHT IS GOING OUT",
+            "NOTHING LEFT TO CIRCLE",
+            "DARK, IT IS ALL GOING DARK",
+            "SOMEONE TURN SOMETHING ON",
+        ),
+        "offline": (
+            "no lights anywhere",
+            "circling nothing at all",
+            "the window went black",
+            "lost the glow entirely",
+        ),
+    },
+    "golem": {
+        "sleeping": (
+            "settled. do not push",
+            "stone rests easily",
+            "standing still, as usual",
+            "the weight is comfortable",
+            "dust gathers. fine by me",
+        ),
+        "working": (
+            "lifting. slowly",
+            "one arm, then the other",
+            "the work gets done",
+            "heavy things move if you wait",
+            "no hurry in stone",
+        ),
+        "happy": (
+            "the stone is pleased",
+            "a good weight, this",
+            "solid work. i approve",
+            "even granite can be glad",
+        ),
+        "perked": (
+            "something shifted",
+            "the ground moved a little",
+            "was that finished",
+            "i felt that from here",
+        ),
+        "alert": (
+            "still holding this",
+            "the load has not moved",
+            "waiting, arms full",
+            "someone take this from me",
+        ),
+        "alarmed": (
+            "THE WEIGHT IS TOO MUCH",
+            "I CANNOT HOLD THIS ALONE",
+            "SOMETHING WILL CRACK",
+            "COME AND TAKE IT",
+        ),
+        "offline": (
+            "gone back to rubble",
+            "nothing to hold on to",
+            "the quarry is quiet",
+            "crumbled, for now",
+        ),
+    },
 }
 
 
@@ -1783,6 +2054,16 @@ UPDATE_PHRASES = {
         "fresh fuel exists, if you want it",
         "a newer flame is available",
         "there is a brighter build now",
+    ),
+    "moth": (
+        "a brighter version exists somewhere",
+        "there is a newer lamp to circle",
+        "an update glows, if you want it",
+    ),
+    "golem": (
+        "newer stone has been quarried",
+        "a fresher build waits",
+        "there is an update. no hurry",
     ),
 }
 
@@ -1990,6 +2271,24 @@ COMPACT = {
         "alert": "█O.O█",
         "alarmed": "█ಠ.ಠ█",
         "offline": "▏x.x▕",
+    },
+    "moth": {
+        "sleeping": "▖-.-▗",
+        "working": "▚o.o▞",
+        "happy": "▚^.^▞",
+        "perked": "▚o.O▞",
+        "alert": "▚O.O▞",
+        "alarmed": "▞ಠ.ಠ▚",
+        "offline": "▖x.x▗",
+    },
+    "golem": {
+        "sleeping": "▙-.-▟",
+        "working": "▙o.o▟",
+        "happy": "▛^.^▜",
+        "perked": "▙o.O▟",
+        "alert": "▛O.O▜",
+        "alarmed": "▛ಠ.ಠ▜",
+        "offline": "░x.x░",
     },
 }
 

@@ -148,10 +148,12 @@ def test_paint_spectrum_actually_uses_several_colours():
     assert len(used) >= 5, f"only {len(used)} colours in a 7-glyph line"
 
 
-def test_only_the_secret_species_is_multicoloured():
-    from shellmate.characters import PUBLIC_NAMES, SECRET_SPECIES
+def test_exactly_the_expected_species_are_multicoloured():
+    """Named explicitly, so moving a buddy between rosters cannot silently
+    change which ones shimmer."""
+    from shellmate.characters import NAMES
     from shellmate.theme import multi_color_palette
 
-    assert multi_color_palette(SECRET_SPECIES)
-    for name in PUBLIC_NAMES:
-        assert multi_color_palette(name) is None, f"{name} should be a single colour"
+    expected = {"glitch"}
+    actual = {name for name in NAMES if multi_color_palette(name) is not None}
+    assert actual == expected, f"multicoloured: {sorted(actual)}, expected {sorted(expected)}"

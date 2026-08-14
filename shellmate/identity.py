@@ -68,17 +68,28 @@ def name_from_seed(seed: str) -> str:
     return name.capitalize()
 
 
-def is_rare_seed(seed: str) -> bool:
-    """Whether this seed rolled the rare species. Pure and deterministic.
+def rare_species_for_seed(seed: str) -> str | None:
+    """Which rare species this seed rolled, or None. Pure and deterministic.
 
-    Uses bytes 12-13, which neither the name nor the common species roll touches,
-    so rarity is independent of both — a rare buddy is no likelier to have any
-    particular name.
+    Each rare species gets its own two bytes and its own independent roll, so
+    adding one does not dilute the odds of the others. Those bytes are untouched
+    by the name and common-species rolls, so a rare buddy is no likelier to have
+    any particular name. If two rolls somehow hit at once the earlier entry wins,
+    which at 1-in-100 each happens about once in ten thousand seeds.
     """
-    from shellmate.characters import RARE_ODDS
+    from shellmate.characters import RARE_NAMES, RARE_ODDS
 
     hash_bytes = hashlib.sha256(seed.encode()).digest()
-    return int.from_bytes(hash_bytes[12:14], "big") % RARE_ODDS == 0
+    for index, name in enumerate(RARE_NAMES):
+        offset = 12 + index * 2
+        if int.from_bytes(hash_bytes[offset : offset + 2], "big") % RARE_ODDS == 0:
+            return name
+    return None
+
+
+def is_rare_seed(seed: str) -> bool:
+    """Whether this seed rolled any rare species. Pure and deterministic."""
+    return rare_species_for_seed(seed) is not None
 
 
 def species_from_seed(seed: str) -> str:
@@ -91,10 +102,11 @@ def species_from_seed(seed: str) -> str:
     Deriving it from the seed rather than storing it means it costs nothing to
     persist and survives any state loss that leaves identity.json intact.
     """
-    from shellmate.characters import COMMON_NAMES, RARE_SPECIES
+    from shellmate.characters import COMMON_NAMES
 
-    if is_rare_seed(seed):
-        return RARE_SPECIES
+    rare = rare_species_for_seed(seed)
+    if rare is not None:
+        return rare
 
     hash_bytes = hashlib.sha256(seed.encode()).digest()
     species_idx = hash_bytes[8] % len(COMMON_NAMES)  # Use byte 8, different from name

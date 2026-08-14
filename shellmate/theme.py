@@ -79,7 +79,9 @@ SPECIES_COLORS = {
     "octopus": "\033[38;2;200;120;220m",  # magenta
     "dragon": "\033[38;2;255;200;20m",  # gold — the rare one
     "glitch": "\033[38;2;120;230;230m",  # cyan — the secret one
-    "ember": "\033[38;2;255;150;40m",  # orange — the other secret one
+    "ember": "\033[38;2;255;150;40m",  # orange — secret
+    "moth": "\033[38;2;198;150;235m",  # dusty violet — secret
+    "golem": "\033[38;2;150;140;132m",  # stone — secret
 }
 
 # Colours a mood mark can be painted in, and how far a species must stay from them.

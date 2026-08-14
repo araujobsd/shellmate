@@ -583,60 +583,81 @@ def test_only_secret_buddies_may_use_non_ascii_art():
 
 
 def test_block_art_stays_in_one_width_class():
-    """Mixing Block Element classes tears the sprite where they differ.
+    """Each block buddy must draw from a single East Asian Width class.
 
-    ▌ is class A but ▐ is N, and the corner glyphs ▛▜▙▟ are N while the solid
-    ▀▄█▒▓ are A — so a natural-looking design silently mixes them. The block
-    buddy uses the A set only.
+    Which class is the buddy's own choice — the ember is class A (bars and
+    fills), the moth and golem are class N (corners, diagonals, quadrants) — but
+    mixing them inside one sprite tears where the classes differ. The range is
+    split in a way that makes that easy to do by accident: ▌ is A while ▐ is N,
+    the corners ▛▜▙▟ are N while the solid ▀▄█ are A, and even the shades
+    disagree, ▒ and ▓ being A while ░ is N.
     """
     import unicodedata
 
     from shellmate.characters import BABY, BLOCK_ART_NAMES, CHARACTERS
 
     for name in BLOCK_ART_NAMES:
+        classes = set()
         for table in (CHARACTERS, BABY):
-            for mood, frames in table[name].items():
+            for frames in table[name].values():
                 for frame in frames:
                     for line in frame:
-                        blocks = [c for c in line if 0x2580 <= ord(c) <= 0x259F]
-                        classes = {unicodedata.east_asian_width(c) for c in blocks}
-                        assert classes <= {"A"}, (
-                            f"{name}/{mood}: block glyphs from more than one width "
-                            f"class: {sorted(classes)} in {line!r}"
-                        )
+                        for char in line:
+                            if 0x2580 <= ord(char) <= 0x259F:
+                                classes.add(unicodedata.east_asian_width(char))
+        assert len(classes) <= 1, f"{name} mixes width classes: {sorted(classes)}"
 
 
-def test_block_art_top_and_bottom_lines_are_symmetric():
-    """A block buddy's cap and floor must mirror, or it looks like it is toppling.
+# Block glyphs that are each other's mirror image. Reversing a line is not enough
+# to test symmetry: ▚ reversed is still ▚, but its mirror is ▞.
+_MIRROR = {
+    "▚": "▞",
+    "▞": "▚",
+    "▖": "▗",
+    "▗": "▖",
+    "▘": "▝",
+    "▝": "▘",
+    "▙": "▟",
+    "▟": "▙",
+    "▛": "▜",
+    "▜": "▛",
+    "▏": "▕",
+    "▕": "▏",
+}
 
-    The existing mirror-pair test only knows about /\\, <>, () and [] — block
-    glyphs are invisible to it. The ember hatchling shipped with caps like ▄▓
-    and ▄█: two different glyphs side by side with no mirror, where the adult
-    had ▄▓▄. Nothing caught it until it was looked at on screen.
 
-    The glyphs used here (▄ ▀ █ ▓ ▒ ▁ ▔) are all self-mirroring, so a plain
-    palindrome check is the right test.
+def _mirror(text: str) -> str:
+    return "".join(_MIRROR.get(char, char) for char in reversed(text))
+
+
+def test_symmetric_block_art_actually_mirrors():
+    """Buddies that claim symmetry must mirror, not merely reverse.
+
+    The first version of this compared a line to its own reverse, which is wrong
+    for glyphs that mirror onto a different glyph: ▚▚▚ ▞▞▞ is visually symmetric
+    but is not a palindrome. Only the buddies in SYMMETRIC_ART_NAMES are held to
+    this — the golem is lopsided on purpose while it works, moving one slab at a
+    time, which is what makes it read as weight.
     """
-    from shellmate.characters import BABY, BLOCK_ART_NAMES, CHARACTERS
+    from shellmate.characters import BABY, CHARACTERS, SYMMETRIC_ART_NAMES
 
-    for name in BLOCK_ART_NAMES:
+    for name in SYMMETRIC_ART_NAMES:
         for table_name, table in (("adult", CHARACTERS), ("baby", BABY)):
             for mood, frames in table[name].items():
                 for i, frame in enumerate(frames):
-                    for line_no in (0, 2):  # cap and floor; the face is not symmetric
-                        core = frame[line_no].strip().rstrip("!?*z. ")
-                        assert core == core[::-1], (
+                    for line_no in (0, 2):
+                        core = frame[line_no].strip().rstrip("!?*z.").strip()
+                        assert core == _mirror(core), (
                             f"{table_name} {name}/{mood} f{i} line{line_no}: "
-                            f"{frame[line_no]!r} is not mirrored"
+                            f"{frame[line_no]!r} does not mirror"
                         )
 
 
 def test_a_block_hatchling_is_narrower_than_its_adult():
     """The hatchling must actually be smaller, not just differently padded.
 
-    The ember's first hatchling reused the adult face verbatim — ▒o.o▒ in both —
-    so the only difference was a space of padding. Every other species contracts
-    its face as well as its body.
+    The ember's first hatchling reused the adult face verbatim, so the only
+    difference was a space of padding. Every other species contracts its face.
     """
     from shellmate.characters import BABY, BLOCK_ART_NAMES, CHARACTERS
     from shellmate.textwidth import width
@@ -651,25 +672,25 @@ def test_a_block_hatchling_is_narrower_than_its_adult():
             )
 
 
-def test_block_buddy_burns_in_step_at_both_sizes():
-    """A block buddy's hatchling and adult must be on the same beat.
-
-    The cap and floor carry the burn, and both sizes draw them identically at a
-    given frame index — only the face differs, because the hatchling's is smaller.
-    They were drawn separately at first and drifted: the adult ran ▀ █ ▀ ▓ while
-    the hatchling ran ▄ █ ▓ ▀, so watching one after the other looked wrong
-    without it being obvious why.
-    """
+def test_block_buddies_have_the_same_frame_count_at_both_sizes():
+    """Both sizes must be on the same beat, whatever the art does between them."""
     from shellmate.characters import BABY, BLOCK_ART_NAMES, CHARACTERS
 
     for name in BLOCK_ART_NAMES:
         for mood, adult_frames in CHARACTERS[name].items():
-            baby_frames = BABY[name][mood]
-            assert len(adult_frames) == len(baby_frames), f"{name}/{mood}: frame counts differ"
-            for i, (adult, baby) in enumerate(zip(adult_frames, baby_frames, strict=True)):
-                assert adult[0] == baby[0], (
-                    f"{name}/{mood} f{i}: caps out of step, {adult[0]!r} vs {baby[0]!r}"
-                )
-                assert adult[2] == baby[2], (
-                    f"{name}/{mood} f{i}: floors out of step, {adult[2]!r} vs {baby[2]!r}"
-                )
+            assert len(BABY[name][mood]) == len(adult_frames), f"{name}/{mood}"
+
+
+def test_the_ember_draws_its_burn_identically_at_both_sizes():
+    """Ember-specific: its burn lives in the cap and floor, so those are shared.
+
+    The moth and golem scale their limbs between sizes instead, so this is not a
+    rule for block art generally — but the ember's two sizes drifted onto
+    different rhythms once already, and only this pins them.
+    """
+    from shellmate.characters import BABY, CHARACTERS
+
+    for mood, adult_frames in CHARACTERS["ember"].items():
+        for i, (adult, baby) in enumerate(zip(adult_frames, BABY["ember"][mood], strict=True)):
+            assert adult[0] == baby[0], f"ember/{mood} f{i}: caps out of step"
+            assert adult[2] == baby[2], f"ember/{mood} f{i}: floors out of step"
