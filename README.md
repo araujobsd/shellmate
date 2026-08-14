@@ -137,7 +137,7 @@ character = "ember"
 | **golem** `▙o.o▟` slow, patient, made of stone | |
 
 ```
-   ▄▀▄       ▚▚▚   ▞▞▞     ▛▜     ▛▜
+   ▄▀▄       ▚▚▚   ▞▞▞     ▛▜   ▛▜
   ▒o.o▒       ▚▖o.o▗▞      ▙▙o.o▟▟
    ▀▀▀       ▘       ▝       ▙░▟
    ember         moth        golem
