@@ -380,16 +380,24 @@ def load(path: Path) -> EscalationState:
         return EscalationState()
 
 
-def _pet_count_on_disk(path: Path) -> int:
-    """Read just pet_count from the file. Returns 0 for anything unreadable."""
+def _petting_on_disk(path: Path) -> tuple[int, float]:
+    """Read the petting fields from the file. Returns (0, 0.0) if unreadable.
+
+    Both only ever move forward, which is what lets save() merge them by max.
+    """
     try:
         raw = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError, UnicodeDecodeError):
-        return 0
-    value = raw.get("pet_count") if isinstance(raw, dict) else None
-    if isinstance(value, int) and not isinstance(value, bool):
-        return max(0, value)
-    return 0
+        return 0, 0.0
+    if not isinstance(raw, dict):
+        return 0, 0.0
+
+    count = raw.get("pet_count")
+    count = max(0, count) if isinstance(count, int) and not isinstance(count, bool) else 0
+
+    when = raw.get("petted_at")
+    is_num = isinstance(when, (int, float)) and not isinstance(when, bool)
+    return count, float(when) if is_num else 0.0
 
 
 def save(path: Path, state: EscalationState) -> None:
@@ -423,5 +431,13 @@ def save(path: Path, state: EscalationState) -> None:
     }
     # Read as late as possible: the gap between this and the rename inside
     # _write_atomic is the only window where a concurrent pet can still be lost.
-    payload["pet_count"] = max(state.pet_count, _pet_count_on_disk(path))
+    #
+    # petted_at is merged for the same reason as the count, and missing it was a
+    # bug: the counter survived a concurrent render while the happy face it is
+    # supposed to trigger was wiped by the next pane a fraction of a second later.
+    disk_count, disk_petted_at = _petting_on_disk(path)
+    payload["pet_count"] = max(state.pet_count, disk_count)
+    own_petted_at = state.petted_at if state.petted_at is not None else 0.0
+    merged_petted_at = max(own_petted_at, disk_petted_at)
+    payload["petted_at"] = merged_petted_at if merged_petted_at > 0.0 else None
     _write_atomic(path, payload)

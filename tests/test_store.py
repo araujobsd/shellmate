@@ -520,3 +520,49 @@ def test_identity_save_also_uses_a_unique_temp_file(tmp_path, monkeypatch):
     for i in range(3):
         save_identity(tmp_path / f"identity-{i}.json", Identity("s", "N", "cat", 1.0))
     assert len(set(seen)) == len(seen) == 3
+
+
+def test_a_stale_writer_cannot_wipe_the_happy_face(tmp_path):
+    """petted_at must survive a concurrent render, exactly as the count does.
+
+    Only pet_count was merged at first, so petting incremented the counter and
+    then the next pane's render wrote its own stale petted_at back — the buddy
+    was recorded as petted while the happy face it triggers vanished within a
+    fraction of a second. Both fields only move forward, so both merge by max.
+    """
+    from shellmate.config import Config
+    from shellmate.escalation import advance
+
+    path = tmp_path / "state.json"
+    save(path, EscalationState())
+
+    in_flight = load(path)  # a render loads state
+    petted = load(path)
+    petted.petted_at = 1000.0
+    petted.pet_count += 1
+    save(path, petted)  # you pet the buddy
+
+    _snap, rendered, _ = advance((), in_flight, 1000.0, Config(), True, session_id="p")
+    save(path, rendered)  # the render finishes and saves
+
+    after = load(path)
+    assert after.petted_at == 1000.0, "a stale render wiped the happy face"
+    assert after.pet_count == 1
+
+
+def test_petted_at_never_goes_backwards(tmp_path):
+    path = tmp_path / "state.json"
+    save(path, EscalationState(petted_at=500.0))
+    save(path, EscalationState(petted_at=100.0))
+    assert load(path).petted_at == 500.0
+    save(path, EscalationState(petted_at=900.0))
+    assert load(path).petted_at == 900.0
+
+
+def test_an_unpetted_buddy_keeps_a_null_petted_at(tmp_path):
+    """Never petted must stay None rather than becoming a spurious 0.0."""
+    path = tmp_path / "state.json"
+    save(path, EscalationState())
+    assert load(path).petted_at is None
+    save(path, EscalationState())
+    assert load(path).petted_at is None
