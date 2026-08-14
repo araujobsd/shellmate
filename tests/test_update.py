@@ -374,3 +374,52 @@ class TestGating:
 
         assert not fetch_called, "Network call was made when enabled=False"
         assert result is None
+
+
+def test_declared_version_is_not_behind_the_newest_release_tag():
+    """A tag ahead of __version__ makes every up-to-date install nag forever.
+
+    v2.0.0 was tagged while __version__ still read 1.5.0. check_for_update
+    compares the newest GitHub release against __version__, so it kept returning
+    "2.0.0 is available" no matter how current the install actually was — and
+    nothing in the suite noticed, because the version is only ever read, never
+    checked against the thing it is supposed to track.
+
+    Skipped where git or the tags are not available (sdist, shallow clone), so
+    this guards the release process rather than gating unrelated work.
+    """
+    import pathlib
+    import subprocess
+
+    import pytest
+
+    from shellmate import __version__
+    from shellmate.update import _parse_version
+
+    repo = pathlib.Path(__file__).resolve().parents[1]
+    try:
+        proc = subprocess.run(
+            ["git", "tag", "--sort=-v:refname"],
+            capture_output=True,
+            text=True,
+            cwd=repo,
+            timeout=5,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError):  # pragma: no cover - env dependent
+        pytest.skip("git is not available")
+    if proc.returncode != 0 or not proc.stdout.strip():  # pragma: no cover
+        pytest.skip("no tags in this checkout")
+
+    tags = [_parse_version(t) for t in proc.stdout.split()]
+    newest = max((t for t in tags if t is not None), default=None)
+    if newest is None:  # pragma: no cover
+        pytest.skip("no parseable version tags")
+
+    declared = _parse_version(__version__)
+    assert declared is not None, f"__version__ {__version__!r} does not parse"
+    assert declared >= newest, (
+        f"__version__ is {__version__}, but {'.'.join(str(p) for p in newest)} is tagged. "
+        "The update check compares releases against __version__, so every current "
+        "install would be told to update."
+    )
