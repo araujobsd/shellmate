@@ -858,3 +858,22 @@ def test_no_two_moods_are_the_same_pose_wearing_a_different_mark():
                     "once the mood marks are stripped"
                 )
                 seen[key] = mood
+
+
+def test_every_buddy_has_its_own_pet_line():
+    """Petting must not fall through to a generic line for most of the roster.
+
+    The table lived inline in the CLI and covered four species out of seventeen,
+    so thirteen buddies — including every one added after it was written — quietly
+    answered "seems pleased". Nothing failed; the fallback simply absorbed them.
+    """
+    from shellmate.characters import NAMES, PET_LINES
+
+    missing = [name for name in NAMES if name not in PET_LINES]
+    assert not missing, f"no pet line for: {', '.join(missing)}"
+
+    extra = [name for name in PET_LINES if name not in NAMES]
+    assert not extra, f"pet line for a buddy that does not exist: {', '.join(extra)}"
+
+    lines = list(PET_LINES.values())
+    assert len(set(lines)) == len(lines), "two buddies share a pet line"

@@ -280,13 +280,7 @@ def pet() -> int:
         store.save(store.default_path(), state)
 
         # Print species-specific affectionate line
-        affectionate_lines = {
-            "cat": "purrs softly",
-            "dog": "wags tail happily",
-            "owl": "hoots softly",
-            "blob": "wobbles gently",
-        }
-        line = affectionate_lines.get(identity.species, "seems pleased")
+        line = characters.PET_LINES.get(identity.species, "seems pleased")
         sys.stdout.write(f"{line}\n")
         sys.stdout.flush()
         return 0

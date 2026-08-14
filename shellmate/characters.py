@@ -2571,6 +2571,31 @@ def compact_for(
     return faces.get(mood) or faces["sleeping"]
 
 
+# What each buddy does when petted. Lives here with the other per-species data
+# rather than inline in the CLI, so tests/test_characters.py can hold it to the
+# roster: the table used to cover four of the seventeen and everything else fell
+# through to a generic line.
+PET_LINES = {
+    "cat": "purrs softly",
+    "owl": "hoots softly",
+    "blob": "wobbles gently",
+    "dog": "wags tail happily",
+    "frog": "blinks, slowly",
+    "ghost": "goes briefly solid",
+    "penguin": "shuffles closer",
+    "robot": "logs the interaction",
+    "cactus": "leans in, carefully",
+    "crab": "clicks once, approvingly",
+    "octopus": "curls one arm around a finger",
+    "dragon": "permits it",
+    "glitch": "fl1ckers warmly",
+    "ember": "burns a little brighter",
+    "moth": "settles on your hand",
+    "golem": "rumbles, quietly",
+    "bilai": "drifts a little closer",
+}
+
+
 PET_DURATION = 10.0  # seconds; petting effect lasts 10s
 
 
