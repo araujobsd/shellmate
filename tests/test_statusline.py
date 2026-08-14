@@ -39,3 +39,45 @@ def test_cold_path_passes_the_character_to_advance():
     assert call, "advance() call not found"
     assert "character=effective_character" in call.group(1)
     assert "session_id=session_id" in call.group(1)
+
+
+def test_the_scripts_embedded_python_imports_names_that_exist():
+    """Every name the shell script imports must exist in the module it names.
+
+    The status line does not import the package the way a test does: it pipes a
+    heredoc into python3 with stderr sent to /dev/null, so an ImportError there is
+    silent. Removing a symbol from shellmate.theme left this script importing it,
+    and the only visible symptom was a blank status line and a warmup_failed
+    marker — the whole suite stayed green.
+
+    Checking the names rather than executing the script keeps this a unit test
+    while still pinning the seam that the suite cannot otherwise see.
+    """
+    import ast
+    import importlib
+    import pathlib
+    import re
+
+    script = pathlib.Path(__file__).resolve().parents[1] / "statusline" / "shellmate-sprite.sh"
+    text = script.read_text()
+    # The heredoc line carries a redirect (<<'PY' 2>/dev/null), so anchor on the
+    # marker and skip to end of line rather than expecting a newline right after.
+    blocks = re.findall(r"<<'PY'[^\n]*\n(.*?)\nPY\n", text, re.DOTALL)
+    assert blocks, "no embedded python found in the status line script"
+
+    checked = 0
+    for block in blocks:
+        tree = ast.parse(block)
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.ImportFrom) or not node.module:
+                continue
+            if not node.module.startswith("shellmate"):
+                continue
+            module = importlib.import_module(node.module)
+            for alias in node.names:
+                assert hasattr(module, alias.name), (
+                    f"{script.name} imports {alias.name!r} from {node.module}, which no "
+                    "longer defines it — the cold render would fail silently"
+                )
+                checked += 1
+    assert checked > 10, f"only {checked} imports checked; the heredoc scan is not finding them"

@@ -694,3 +694,142 @@ def test_the_ember_draws_its_burn_identically_at_both_sizes():
         for i, (adult, baby) in enumerate(zip(adult_frames, BABY["ember"][mood], strict=True)):
             assert adult[0] == baby[0], f"ember/{mood} f{i}: caps out of step"
             assert adult[2] == baby[2], f"ember/{mood} f{i}: floors out of step"
+
+
+def test_a_hatchling_keeps_every_feature_its_adult_has():
+    """A buddy's features must survive the shrink, not just its outline.
+
+    Block buddies draw their body in block glyphs and their features — ears,
+    eyes, tails, whiskers — in ASCII. The block part legitimately scales down at
+    hatchling size; the features must not. The neoncat hatchling shipped with one
+    ear because the code that built it took the first character of "^ ^".
+
+    This is the fifth bug of exactly this shape: the penguin lost a flipper, the
+    cactus both arms, the cat an ear, the ember's hatchling its symmetry. None
+    were caught by the width, line-count or budget checks, because a missing limb
+    is still a valid sprite. Comparing the features between sizes is what catches
+    it.
+    """
+    from collections import Counter
+
+    from shellmate.characters import BABY, BLOCK_ART_NAMES, CHARACTERS
+
+    def features(line):
+        # ASCII, minus the mood marks and padding — what is left is the creature.
+        return Counter(c for c in line if c.isascii() and c not in " !?*z.")
+
+    for name in BLOCK_ART_NAMES:
+        for mood, adult_frames in CHARACTERS[name].items():
+            for i, (adult, baby) in enumerate(zip(adult_frames, BABY[name][mood], strict=True)):
+                for line_no in (0, 2):  # ears and tail; row 1 is the face
+                    want, got = features(adult[line_no]), features(baby[line_no])
+                    assert want == got, (
+                        f"{name}/{mood} f{i} line{line_no}: hatchling has {dict(got)} "
+                        f"where the adult has {dict(want)} — a feature was lost in the shrink"
+                    )
+
+
+def test_alarmed_and_sleeping_are_posed_differently_from_working():
+    """The moods that mean something categorical must differ by more than eyes.
+
+    working, perked and alert legitimately share a pose — they are degrees of the
+    same thing and the eyes carry the difference. sleeping and alarmed are not:
+    one means nothing is happening and the other means come here now, and both
+    should be recognisable across the room.
+
+    The neoncat's alarmed state carried a flag to run its trail backwards, which
+    stopped meaning anything once the trail became solid — there is nothing to
+    reverse in a uniform run. Alarmed then differed from working only in the eyes
+    and the ! marks, and nothing failed, because a mood that looks like another
+    mood is still a well-formed sprite.
+    """
+    from shellmate.characters import BLOCK_ART_NAMES, CHARACTERS
+
+    def pose(frames):
+        # drop the eyes and the mood marks; what is left is how it is holding itself
+        return tuple(
+            "".join(c for c in line if not c.isalnum() and c not in "!?*z.")
+            for frame in frames
+            for line in frame
+        )
+
+    for name in BLOCK_ART_NAMES:
+        working = pose(CHARACTERS[name]["working"])
+        for mood in ("sleeping", "alarmed"):
+            assert pose(CHARACTERS[name][mood]) != working, (
+                f"{name}: {mood} is posed exactly like working, so it reads as "
+                f"the same buddy with different eyes"
+            )
+
+
+def test_bilai_stays_symmetric_about_one_centre():
+    """Every row of every frame is a palindrome sharing one centre column.
+
+    This buddy's whole history is parts drifting away from each other. It began
+    as a face spread over three rows above a block run that changed length every
+    frame, and everything that went wrong was relative position: an ear that
+    vanished, ears a column right of the eyes, a mouth beating out of time with
+    the face. None of it was catchable row by row — each row was individually
+    valid, inside the column budget, three lines, one width class. Only the
+    relationship between rows was wrong, so that is what this pins.
+    """
+    from shellmate.characters import BABY, CHARACTERS
+
+    for table_name, table in (("adult", CHARACTERS), ("baby", BABY)):
+        for mood, frames in table["bilai"].items():
+            for i, frame in enumerate(frames):
+                where = f"{table_name} bilai/{mood} f{i}"
+                axes = set()
+                for line_no, line in enumerate(frame):
+                    body = line.rstrip(" !?*z.")
+                    pad = len(body) - len(body.lstrip(" "))
+                    core = body[pad:]
+                    assert core == core[::-1], f"{where} row {line_no} is lopsided: {core!r}"
+                    axes.add(2 * pad + len(core) - 1)  # doubled, so half columns count
+                assert len(axes) == 1, (
+                    f"{where}: rows sit on different centres {sorted(axes)} — the sprite "
+                    "has come apart\n  " + "\n  ".join(repr(line) for line in frame)
+                )
+
+
+def test_bilais_eyes_match_each_other_and_stay_in_their_cells():
+    """Both eyes carry the same glyph, in the two cells either side of centre.
+
+    The eyes are holes in the fill, so nothing structural stops one of them from
+    being carved differently, drifting a column, or opening while the other stays
+    shut — which is exactly the class of fault that plagued the earlier designs.
+    Everything else on the eye row must be solid.
+    """
+    from shellmate.characters import BABY, CHARACTERS
+
+    for table_name, table in (("adult", CHARACTERS), ("baby", BABY)):
+        for mood, frames in table["bilai"].items():
+            for i, frame in enumerate(frames):
+                row = frame[1].rstrip(" !?*z.")
+                where = f"{table_name} bilai/{mood} f{i}"
+                assert len(row) % 2 == 1, f"{where}: eye row {row!r} has no centre cell"
+                centre = len(row) // 2
+                left, right = centre - 1, centre + 1
+                assert row[left] == row[right], (
+                    f"{where}: eyes differ — {row[left]!r} against {row[right]!r} in {row!r}"
+                )
+                solid = [c for c in range(len(row)) if c not in (left, right)]
+                assert all(row[c] == "█" for c in solid), (
+                    f"{where}: the eye row is carved outside its eye cells: {row!r}"
+                )
+
+
+def test_bilai_is_drawn_only_in_blocks():
+    """No ASCII creeps back into the art — the whole buddy is block glyphs."""
+    from shellmate.characters import BABY, CHARACTERS, IDLE
+
+    allowed = set(" ▁▂▃▄▅▆▇█▔▀▒▓") | set(" !?*z.")
+    tables = (("adult", CHARACTERS["bilai"]), ("baby", BABY["bilai"]))
+    for table_name, moods in tables:
+        for mood, frames in moods.items():
+            for i, frame in enumerate(frames):
+                stray = set("".join(frame)) - allowed
+                assert not stray, f"{table_name} bilai/{mood} f{i} is not block art: {stray}"
+    for i, frame in enumerate(IDLE["bilai"]):
+        stray = set("".join(frame)) - allowed
+        assert not stray, f"idle bilai f{i} is not block art: {stray}"

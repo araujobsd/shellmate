@@ -82,6 +82,7 @@ SPECIES_COLORS = {
     "ember": "\033[38;2;255;150;40m",  # orange — secret
     "moth": "\033[38;2;198;150;235m",  # dusty violet — secret
     "golem": "\033[38;2;150;140;132m",  # stone — secret
+    "bilai": "\033[38;2;200;215;255m",  # spectral pale — the opt-in one
 }
 
 # Colours a mood mark can be painted in, and how far a species must stay from them.

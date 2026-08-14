@@ -309,7 +309,7 @@ fi
 
 # --- hot path: pure bash, just print the frame for this second ---
 # Must match characters.MAX_FRAMES; tests/test_statusline.py asserts they agree.
-FRAMES=4
+FRAMES=8
 frame=$(( now % FRAMES ))
 
 # Check for staleness: if frame is older than STALENESS_THRESHOLD, render offline instead

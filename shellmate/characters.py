@@ -37,9 +37,10 @@ BABY_MOODS = MOODS
 SPRITE_LINES = 3
 # Animation slots written to the frame cache. The hot path picks one by wall
 # clock, so every sprite is written cycling to fill all of them: a 2-frame buddy
-# becomes a,b,a,b and alternates once a second exactly as it always has, while a
-# 4-frame one gets a full four-second loop. Frame counts must divide this.
-MAX_FRAMES = 4
+# becomes a,b,a,b,a,b,a,b and still alternates once a second exactly as it always
+# has. Raised to 8 for a buddy whose trail scrolls: at four frames the colour
+# steps visibly, at eight it crawls. Frame counts must divide this.
+MAX_FRAMES = 8
 SPRITE_MAX_COLS = 12
 
 # Growth stage boundaries (seconds from birth)
@@ -636,6 +637,75 @@ CHARACTERS = {
         ],
         "offline": [[r"░       ░", r" ▙▙x.x▟▟  ..", r"   ░░░   "]],
     },
+    # Eyes are holes in the fill rather than drawn glyphs, which is how block art
+    # gets a face without borrowing ASCII. Head, eyes and skirt come from one row
+    # of the frame table, so they cannot animate on separate beats, and the eyes
+    # live in fixed cells either side of centre — see tests.
+    "bilai": {
+        "sleeping": [
+            [r"▄█████▄", r"██▇█▇██", r"▀█▀█▀█▀"],
+            [r"▄█████▄", r"██▇█▇██", r"█▀█▀█▀█"],
+            [r"▄█████▄", r"██▇█▇██", r"█▀█▀█▀█"],
+            [r"▄█████▄", r"██▇█▇██ z", r"▀█▀█▀█▀"],
+            [r"▄█████▄", r"██▇█▇██", r"▀█▀█▀█▀"],
+            [r"▄█████▄", r"██▇█▇██", r"█▀█▀█▀█"],
+            [r"▄█████▄", r"██▇█▇██", r"█▀█▀█▀█"],
+            [r"▄█████▄", r"██▇█▇██ z", r"▀█▀█▀█▀"],
+        ],
+        "working": [
+            [r"▄█████▄", r"██▄█▄██", r"▀█▀█▀█▀"],
+            [r"▄█████▄", r"██▄█▄██", r"█▀█▀█▀█"],
+            [r"▄█████▄", r"██▄█▄██", r"▀█▀█▀█▀"],
+            [r"▄█████▄", r"██▇█▇██", r"█▀█▀█▀█"],
+            [r"▄█████▄", r"██▄█▄██", r"▀█▀█▀█▀"],
+            [r"▄█████▄", r"██▄█▄██", r"█▀█▀█▀█"],
+            [r"▄█████▄", r"██▄█▄██", r"▀█▀█▀█▀"],
+            [r"▄█████▄", r"██▇█▇██", r"█▀█▀█▀█"],
+        ],
+        "happy": [
+            [r"▄█████▄", r"██▆█▆██ *", r"▀█▀█▀█▀"],
+            [r"▄█████▄", r"██▆█▆██ *", r"█▀█▀█▀█"],
+            [r"▄█████▄", r"██▆█▆██ *", r"▀█▀█▀█▀"],
+            [r"▄█████▄", r"██▆█▆██ *", r"█▀█▀█▀█"],
+            [r"▄█████▄", r"██▆█▆██ *", r"▀█▀█▀█▀"],
+            [r"▄█████▄", r"██▆█▆██ *", r"█▀█▀█▀█"],
+            [r"▄█████▄", r"██▆█▆██ *", r"▀█▀█▀█▀"],
+            [r"▄█████▄", r"██▆█▆██ *", r"█▀█▀█▀█"],
+        ],
+        "perked": [
+            [r"▄█████▄", r"██▄█▄██ ?", r"█▀█▀█▀█"],
+            [r"▄█████▄", r"██▄█▄██ ?", r"▀█▀█▀█▀"],
+            [r"▄█████▄", r"██▀█▀██ ?", r"█▀█▀█▀█"],
+            [r"▄█████▄", r"██▄█▄██ ?", r"▀█▀█▀█▀"],
+            [r"▄█████▄", r"██▄█▄██ ?", r"█▀█▀█▀█"],
+            [r"▄█████▄", r"██▄█▄██ ?", r"▀█▀█▀█▀"],
+            [r"▄█████▄", r"██▀█▀██ ?", r"█▀█▀█▀█"],
+            [r"▄█████▄", r"██▄█▄██ ?", r"▀█▀█▀█▀"],
+        ],
+        "alert": [
+            [r"███████", r"██ █ ██ !", r"▀█▀█▀█▀"],
+            [r"███████", r"██ █ ██ !", r"█▀█▀█▀█"],
+            [r"███████", r"██ █ ██ !", r"▀█▀█▀█▀"],
+            [r"███████", r"██ █ ██ !", r"█▀█▀█▀█"],
+            [r"███████", r"██ █ ██ !", r"▀█▀█▀█▀"],
+            [r"███████", r"██ █ ██ !", r"█▀█▀█▀█"],
+            [r"███████", r"██ █ ██ !", r"▀█▀█▀█▀"],
+            [r"███████", r"██ █ ██ !", r"█▀█▀█▀█"],
+        ],
+        "alarmed": [
+            [r"███████", r"██ █ ██ !!", r"▀█▀█▀█▀"],
+            [r"███████", r"██ █ ██ !!", r"█▀█▀█▀█"],
+            [r"███████", r"██ █ ██ !!", r"▀█▀█▀█▀"],
+            [r"███████", r"██▇█▇██ !!", r"█▀█▀█▀█"],
+            [r"███████", r"██ █ ██ !!", r"█▀█▀█▀█"],
+            [r"███████", r"██ █ ██ !!", r"▀█▀█▀█▀"],
+            [r"███████", r"██ █ ██ !!", r"█▀█▀█▀█"],
+            [r"███████", r"██▇█▇██ !!", r"▀█▀█▀█▀"],
+        ],
+        "offline": [
+            [r"▄█████▄", r"██▒█▒██ ..", r"▀█▀█▀█▀"],
+        ],
+    },
 }
 
 
@@ -710,6 +780,10 @@ IDLE = {
     "golem": [
         [r"  ░   ░  ", r" ▙▙-.-▟▟ ", r"   ▙░▟   "],  # dust drifts
         [r"  ░   ░  ", r" ▙▙-.-▟▟ ", r"   ▟░▙   "],  # shifts its weight
+    ],
+    "bilai": [
+        [r"▄█████▄", r"██▄█▄██", r"▀█▀█▀█▀"],
+        [r"▄█████▄", r"██▄█▄██", r"█▀█▀█▀█"],
     ],
 }
 
@@ -1197,6 +1271,71 @@ BABY = {
         ],
         "offline": [[r"░     ░", r" ▙x.x▟  ..", r"  ░░░  "]],
     },
+    "bilai": {
+        "sleeping": [
+            [r"▄███▄", r"█▇█▇█", r"▀█▀█▀"],
+            [r"▄███▄", r"█▇█▇█", r"█▀█▀█"],
+            [r"▄███▄", r"█▇█▇█", r"█▀█▀█"],
+            [r"▄███▄", r"█▇█▇█ z", r"▀█▀█▀"],
+            [r"▄███▄", r"█▇█▇█", r"▀█▀█▀"],
+            [r"▄███▄", r"█▇█▇█", r"█▀█▀█"],
+            [r"▄███▄", r"█▇█▇█", r"█▀█▀█"],
+            [r"▄███▄", r"█▇█▇█ z", r"▀█▀█▀"],
+        ],
+        "working": [
+            [r"▄███▄", r"█▄█▄█", r"▀█▀█▀"],
+            [r"▄███▄", r"█▄█▄█", r"█▀█▀█"],
+            [r"▄███▄", r"█▄█▄█", r"▀█▀█▀"],
+            [r"▄███▄", r"█▇█▇█", r"█▀█▀█"],
+            [r"▄███▄", r"█▄█▄█", r"▀█▀█▀"],
+            [r"▄███▄", r"█▄█▄█", r"█▀█▀█"],
+            [r"▄███▄", r"█▄█▄█", r"▀█▀█▀"],
+            [r"▄███▄", r"█▇█▇█", r"█▀█▀█"],
+        ],
+        "happy": [
+            [r"▄███▄", r"█▆█▆█ *", r"▀█▀█▀"],
+            [r"▄███▄", r"█▆█▆█ *", r"█▀█▀█"],
+            [r"▄███▄", r"█▆█▆█ *", r"▀█▀█▀"],
+            [r"▄███▄", r"█▆█▆█ *", r"█▀█▀█"],
+            [r"▄███▄", r"█▆█▆█ *", r"▀█▀█▀"],
+            [r"▄███▄", r"█▆█▆█ *", r"█▀█▀█"],
+            [r"▄███▄", r"█▆█▆█ *", r"▀█▀█▀"],
+            [r"▄███▄", r"█▆█▆█ *", r"█▀█▀█"],
+        ],
+        "perked": [
+            [r"▄███▄", r"█▄█▄█ ?", r"█▀█▀█"],
+            [r"▄███▄", r"█▄█▄█ ?", r"▀█▀█▀"],
+            [r"▄███▄", r"█▀█▀█ ?", r"█▀█▀█"],
+            [r"▄███▄", r"█▄█▄█ ?", r"▀█▀█▀"],
+            [r"▄███▄", r"█▄█▄█ ?", r"█▀█▀█"],
+            [r"▄███▄", r"█▄█▄█ ?", r"▀█▀█▀"],
+            [r"▄███▄", r"█▀█▀█ ?", r"█▀█▀█"],
+            [r"▄███▄", r"█▄█▄█ ?", r"▀█▀█▀"],
+        ],
+        "alert": [
+            [r"█████", r"█ █ █ !", r"▀█▀█▀"],
+            [r"█████", r"█ █ █ !", r"█▀█▀█"],
+            [r"█████", r"█ █ █ !", r"▀█▀█▀"],
+            [r"█████", r"█ █ █ !", r"█▀█▀█"],
+            [r"█████", r"█ █ █ !", r"▀█▀█▀"],
+            [r"█████", r"█ █ █ !", r"█▀█▀█"],
+            [r"█████", r"█ █ █ !", r"▀█▀█▀"],
+            [r"█████", r"█ █ █ !", r"█▀█▀█"],
+        ],
+        "alarmed": [
+            [r"█████", r"█ █ █ !!", r"▀█▀█▀"],
+            [r"█████", r"█ █ █ !!", r"█▀█▀█"],
+            [r"█████", r"█ █ █ !!", r"▀█▀█▀"],
+            [r"█████", r"█▇█▇█ !!", r"█▀█▀█"],
+            [r"█████", r"█ █ █ !!", r"█▀█▀█"],
+            [r"█████", r"█ █ █ !!", r"▀█▀█▀"],
+            [r"█████", r"█ █ █ !!", r"█▀█▀█"],
+            [r"█████", r"█▇█▇█ !!", r"▀█▀█▀"],
+        ],
+        "offline": [
+            [r"▄███▄", r"█▒█▒█ ..", r"▀█▀█▀"],
+        ],
+    },
 }
 
 
@@ -1224,7 +1363,7 @@ RARE_ODDS = 100
 # ambiguous-width=double renders at the wrong size, because anyone who sees them
 # chose them and can simply stop. A rollable buddy has no such luxury, which is
 # why `glitch` — pure ASCII — can be rolled while these cannot.
-SECRET_NAMES = ("ember", "moth", "golem")
+SECRET_NAMES = ("ember", "moth", "golem", "bilai")
 SECRET_SPECIES = SECRET_NAMES[0]  # kept for callers that want just one
 
 # Species an ordinary roll can produce: everything except the rare and secret ones.
@@ -1981,6 +2120,52 @@ PHRASES = {
             "crumbled, for now",
         ),
     },
+    "bilai": {
+        "sleeping": (
+            "haunting nothing in particular",
+            "drifting on the spot",
+            "eyes shut. still technically here",
+            "low power haunt",
+            "wake me if something needs spooking",
+        ),
+        "working": (
+            "hovering, attentively",
+            "watching the build go by",
+            "passing through, slowly",
+            "this is what a vigil looks like",
+            "spectral, and slightly ridiculous",
+        ),
+        "happy": (
+            "MAXIMUM HAUNT",
+            "that one landed. i felt it",
+            "peak spook achieved",
+            "drifting with real enthusiasm",
+        ),
+        "perked": (
+            "something moved. so did i",
+            "did you see that",
+            "brief change of heading",
+            "hm. a draught. professionally speaking",
+        ),
+        "alert": (
+            "still here. nobody looking",
+            "this haunting is going to waste",
+            "hovering indefinitely",
+            "attention available on request",
+        ),
+        "alarmed": (
+            "BOO. PLEASE",
+            "SOMEONE ACKNOWLEDGE THIS",
+            "EVERY OMEN CRITICAL AND ALSO IGNORED",
+            "FULL HAUNT, NO WITNESSES",
+        ),
+        "offline": (
+            "passed through. no session left",
+            "haunt unplugged",
+            "just a draught now, sadly",
+            "nothing here to haunt",
+        ),
+    },
 }
 
 
@@ -2064,6 +2249,11 @@ UPDATE_PHRASES = {
         "newer stone has been quarried",
         "a fresher build waits",
         "there is an update. no hurry",
+    ),
+    "bilai": (
+        "a faster version exists",
+        "newer haunting available",
+        "there is a better haunt now",
     ),
 }
 
@@ -2289,6 +2479,15 @@ COMPACT = {
         "alert": "▛O.O▜",
         "alarmed": "▛ಠ.ಠ▜",
         "offline": "░x.x░",
+    },
+    "bilai": {
+        "sleeping": "▀███▀",
+        "working": "█▄█▄█",
+        "happy": "█▆█▆█",
+        "perked": "▀▄█▄▀",
+        "alert": "█▒█▒█",
+        "alarmed": "▀▒█▒▀",
+        "offline": "▀▓█▓▀",
     },
 }
 
