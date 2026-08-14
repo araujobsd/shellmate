@@ -833,3 +833,28 @@ def test_bilai_is_drawn_only_in_blocks():
     for i, frame in enumerate(IDLE["bilai"]):
         stray = set("".join(frame)) - allowed
         assert not stray, f"idle bilai f{i} is not block art: {stray}"
+
+
+def test_no_two_moods_are_the_same_pose_wearing_a_different_mark():
+    """Moods must be told apart by the sprite, not only by the ! after it.
+
+    bilai's alert and alarmed were byte-identical apart from ! against !!, so at
+    a glance the buddy looked the same whether it wanted attention or was in
+    trouble — the mark is small, dim and easy to miss. The marks are stripped
+    here precisely so they cannot stand in for a real difference in pose.
+    """
+    from shellmate.characters import BABY, CHARACTERS
+
+    def poses(frames):
+        return tuple(tuple(line.rstrip(" !?*z.") for line in f) for f in frames)
+
+    for table_name, table in (("adult", CHARACTERS), ("baby", BABY)):
+        for name, moods in table.items():
+            seen = {}
+            for mood, frames in moods.items():
+                key = poses(frames)
+                assert key not in seen, (
+                    f"{table_name} {name}: {seen[key]} and {mood} are the same animation "
+                    "once the mood marks are stripped"
+                )
+                seen[key] = mood
