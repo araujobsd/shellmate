@@ -7,11 +7,36 @@ degrades silently rather than interrupting the pane.
 import contextlib
 import json
 import os
+import tempfile
 from pathlib import Path
 
 from shellmate import characters
 from shellmate.identity import Identity
 from shellmate.models import EscalationState
+
+
+def _write_atomic(path: Path, payload: dict) -> None:
+    """Write JSON to `path` atomically. Never raises.
+
+    The temp file must be unique per writer. It used to be a single shared
+    `state.tmp`, which quietly broke the atomicity it was there to provide: with
+    ten panes saving every couple of seconds, writer A would fill the temp file,
+    writer B would overwrite that same temp file, and A's rename would then
+    publish B's bytes. Readers never saw a torn file — os.replace is atomic — so
+    it looked fine while updates went missing. That is what was eating pet counts.
+    """
+    tmp = None
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        fd, tmp_name = tempfile.mkstemp(dir=str(path.parent), prefix=path.name + ".", suffix=".tmp")
+        tmp = Path(tmp_name)
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            handle.write(json.dumps(payload))
+        os.replace(tmp, path)
+    except (OSError, TypeError, ValueError):
+        if tmp is not None:
+            with contextlib.suppress(OSError):
+                tmp.unlink(missing_ok=True)
 
 
 def _legacy_path() -> Path:
@@ -211,14 +236,7 @@ def save_identity(path: Path, identity: Identity) -> None:
         "species": identity.species,
         "born_at": identity.born_at,
     }
-    tmp = path.with_suffix(".tmp")
-    try:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        tmp.write_text(json.dumps(payload), encoding="utf-8")
-        os.replace(tmp, path)
-    except (OSError, TypeError, ValueError):
-        with contextlib.suppress(OSError):
-            tmp.unlink(missing_ok=True)
+    _write_atomic(path, payload)
 
 
 def load(path: Path) -> EscalationState:
@@ -362,11 +380,30 @@ def load(path: Path) -> EscalationState:
         return EscalationState()
 
 
+def _pet_count_on_disk(path: Path) -> int:
+    """Read just pet_count from the file. Returns 0 for anything unreadable."""
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError, UnicodeDecodeError):
+        return 0
+    value = raw.get("pet_count") if isinstance(raw, dict) else None
+    if isinstance(value, int) and not isinstance(value, bool):
+        return max(0, value)
+    return 0
+
+
 def save(path: Path, state: EscalationState) -> None:
     """Write escalation state atomically via tmp + rename. Never raises.
 
     Identity is NOT saved here — it lives in a separate identity.json file.
     This prevents escalation timer writes from touching the precious, write-once identity.
+
+    pet_count is merged rather than overwritten. Every pane's status line does a
+    read-modify-write of this file every couple of seconds, so a render that
+    loaded state just before you petted would write its stale count back and
+    swallow the pet. The counter only ever goes up, which makes max() the correct
+    merge: a stale writer holds a lower value and loses, while --pet holds a
+    higher one and wins.
     """
     path = Path(path)
     payload = {
@@ -384,11 +421,7 @@ def save(path: Path, state: EscalationState) -> None:
         "phrase_set_at_by_session": state.phrase_set_at_by_session,
         "last_mood_by_session": state.last_mood_by_session,
     }
-    tmp = path.with_suffix(".tmp")
-    try:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        tmp.write_text(json.dumps(payload), encoding="utf-8")
-        os.replace(tmp, path)
-    except (OSError, TypeError, ValueError):
-        with contextlib.suppress(OSError):
-            tmp.unlink(missing_ok=True)
+    # Read as late as possible: the gap between this and the rename inside
+    # _write_atomic is the only window where a concurrent pet can still be lost.
+    payload["pet_count"] = max(state.pet_count, _pet_count_on_disk(path))
+    _write_atomic(path, payload)

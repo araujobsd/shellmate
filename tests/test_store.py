@@ -1,4 +1,5 @@
 import json
+import pathlib
 
 from shellmate.identity import Identity
 from shellmate.models import EscalationState
@@ -417,3 +418,105 @@ def test_invalid_identity_data_in_state_falls_back_to_none(tmp_path):
     restored = load_identity(ident_path)
     assert restored is None
     assert not ident_path.exists()
+
+
+def test_a_stale_writer_cannot_swallow_a_pet(tmp_path):
+    """Every pane read-modify-writes this file; a pet must survive that.
+
+    --pet is a read-modify-write, and so is every status line render, every couple
+    of seconds, in every pane. A render that loaded state just before you petted
+    used to write its own stale pet_count back and the pet vanished. Observed on a
+    live install: two pets in a row, counter stuck at 1.
+    """
+    from shellmate.config import Config
+    from shellmate.escalation import advance
+
+    path = tmp_path / "state.json"
+    save(path, EscalationState(pet_count=5))
+
+    in_flight = load(path)  # a render loads state...
+    petted = load(path)
+    petted.pet_count += 1
+    save(path, petted)  # ...you pet the buddy...
+    assert load(path).pet_count == 6
+
+    _snap, rendered, _ = advance((), in_flight, 1000.0, Config(), True, session_id="p")
+    save(path, rendered)  # ...and the render finishes and saves.
+    assert load(path).pet_count == 6, "a stale render swallowed the pet"
+
+
+def test_pet_count_never_goes_backwards(tmp_path):
+    """The counter is monotonic, which is what makes merging by max() correct."""
+    path = tmp_path / "state.json"
+    save(path, EscalationState(pet_count=9))
+    save(path, EscalationState(pet_count=3))
+    assert load(path).pet_count == 9
+    save(path, EscalationState(pet_count=11))
+    assert load(path).pet_count == 11
+
+
+def test_pet_count_merge_survives_a_corrupt_file(tmp_path):
+    """An unreadable file must not stop the save or raise."""
+    path = tmp_path / "state.json"
+    path.write_text("{not json at all")
+    save(path, EscalationState(pet_count=4))
+    assert load(path).pet_count == 4
+
+
+def test_petting_still_persists_normally(tmp_path):
+    path = tmp_path / "state.json"
+    save(path, EscalationState(pet_count=0))
+    for expected in (1, 2, 3):
+        state = load(path)
+        state.pet_count += 1
+        save(path, state)
+        assert load(path).pet_count == expected
+
+
+def test_each_save_uses_its_own_temp_file(tmp_path, monkeypatch):
+    """Concurrent writers must not share a temp file.
+
+    save() writes a temp file then renames it, which is only atomic if each
+    writer has its own. With a single shared `state.tmp` — ten panes save every
+    couple of seconds — writer A would fill it, writer B would overwrite it, and
+    A's rename would publish B's bytes. Readers never saw a torn file, because
+    the rename really is atomic, so it looked correct while updates vanished.
+    Measured at realistic cadence: 32 of 40 pets lost before, 0 after.
+    """
+    import tempfile as tempfile_mod
+
+    seen = []
+    real_mkstemp = tempfile_mod.mkstemp
+
+    def recording_mkstemp(*args, **kwargs):
+        fd, name = real_mkstemp(*args, **kwargs)
+        seen.append(name)
+        return fd, name
+
+    monkeypatch.setattr("shellmate.store.tempfile.mkstemp", recording_mkstemp)
+    path = tmp_path / "state.json"
+    for count in range(5):
+        save(path, EscalationState(pet_count=count))
+
+    assert len(seen) == 5
+    assert len(set(seen)) == 5, f"temp files were reused: {seen}"
+    for name in seen:
+        assert not pathlib.Path(name).exists(), "a temp file was left behind"
+
+
+def test_identity_save_also_uses_a_unique_temp_file(tmp_path, monkeypatch):
+    """Identity is precious; it must not be published from a shared temp either."""
+    import tempfile as tempfile_mod
+
+    seen = []
+    real_mkstemp = tempfile_mod.mkstemp
+
+    def recording_mkstemp(*args, **kwargs):
+        fd, name = real_mkstemp(*args, **kwargs)
+        seen.append(name)
+        return fd, name
+
+    monkeypatch.setattr("shellmate.store.tempfile.mkstemp", recording_mkstemp)
+    for i in range(3):
+        save_identity(tmp_path / f"identity-{i}.json", Identity("s", "N", "cat", 1.0))
+    assert len(set(seen)) == len(seen) == 3
